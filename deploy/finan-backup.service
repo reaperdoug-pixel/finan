@@ -1,0 +1,16 @@
+[Unit]
+Description=Backup do banco do FINAN
+After=postgresql.service
+
+[Service]
+Type=oneshot
+# Variáveis de conexão e de backup (PGHOST, PGUSER, PGPASSWORD, PGDATABASE, BACKUP_*). Modo 600.
+EnvironmentFile=/etc/finan/backup.env
+ExecStart=/opt/finan/deploy/backup.sh
+User=finan
+# Isolamento: o serviço só escreve na pasta de backups.
+ProtectSystem=strict
+ReadWritePaths=/var/backups/finan
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true

@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "admin:criar": "tsx src/cli/criar-admin.ts",
+    "admin:redefinir": "tsx src/cli/redefinir-admin.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:reset": "tsx src/db/migrate.ts --reset",

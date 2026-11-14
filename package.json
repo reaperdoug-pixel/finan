@@ -12,6 +12,7 @@
     "dev:api": "npm run dev -w api",
     "dev:web": "npm run dev -w web",
     "admin:criar": "npm run admin:criar -w api",
+    "admin:redefinir": "npm run admin:redefinir -w api",
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",

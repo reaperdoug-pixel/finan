@@ -41,7 +41,7 @@ const aindaValida = (tokenHash: string) =>
 export async function criarRedefinicao(
   db: Db,
   segredo: string,
-  p: { usuarioId: string; porUsuarioId: string; ip: string },
+  p: { usuarioId: string; porUsuarioId: string; ip: string; via?: string },
 ): Promise<{ token: string; expiraEm: Date; email: string }> {
   return db.transaction(async (tx) => {
     const [u] = await tx
@@ -89,7 +89,7 @@ export async function criarRedefinicao(
       entidadeId: u.id,
       ip: p.ip,
       confirmadoPor: p.porUsuarioId,
-      depois: { expiraEm },
+      depois: { expiraEm, ...(p.via ? { via: p.via } : {}) },
     });
 
     return { token, expiraEm, email: u.email };

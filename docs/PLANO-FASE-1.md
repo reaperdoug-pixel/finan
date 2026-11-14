@@ -21,7 +21,7 @@ Cada tarefa só está pronta quando cumprir seu critério e passar lint, tipos e
 | 13 | Front: login, lançamentos, categorias, contas, inativos, usuários/permissões, log (mobile-first) | Fluxos principais passam no Playwright; nada sensível no bundle. **Concluída** (2 testes Playwright em `e2e/fluxos.spec.ts`: login recusado/aceito, conta, lançamento, inativar e reativar; 5 testes Vitest no `web/`, incluindo varredura do bundle). Telas: login, convite, redefinição, lançamentos, categorias, contas, inativos, pessoas, log e titulares. CSRF só em memória; sessão só no cookie. |
 | 14 | Isolamento entre titulares | Teste tenta acessar dado de outro titular em todos os endpoints e falha. **Concluída** (34 testes em `api/src/isolamento/isolamento.test.ts`: catálogo fecha as rotas da API; sem sessão 401; titular/vinculado/admin nas rotas comuns não lêem nem alteram a casa alheia; listas e FKs não vazam). |
 | 15 | Deploy na VPS (Node, Postgres, Caddy, systemd, HTTPS) | Sistema acessível por domínio com HTTPS |
-| 16 | Backup diário, retenção de 14 dias e cópia externa criptografada | Restauração testada com sucesso |
+| 16 | Backup diário, retenção de 14 dias e cópia externa criptografada | Restauração testada com sucesso. **Scripts prontos** em `deploy/` (ver `docs/BACKUP.md`); falta instalar na VPS, definir o destino externo e testar a restauração completa. |
 
 ## Fora desta fase
 
@@ -32,7 +32,7 @@ Antecipados por decisão do produto em 13/11/2026 (decisões 27 e 28): o painel 
 ## Pendências encontradas no caminho (ainda sem tarefa)
 
 - ~~**Trocar a própria senha** estando logado~~ **Feito** em 14/11/2026: `POST /auth/senha` (senha atual + nova, encerra as outras sessões, ação `senha.alterada` no log) e modal "Alterar senha" na sidebar.
-- **Recuperar a senha do próprio admin:** ele não tem a quem pedir o link. Sugestão: um comando no servidor, no estilo de `npm run admin:criar`, que gera o link de redefinição.
+- ~~**Recuperar a senha do próprio admin**~~ **Feito** em 14/11/2026: `npm run admin:redefinir -- --email=...` (4 testes em `api/src/admin/recuperar.test.ts`). Ver `docs/BACKUP.md`.
 - **Tela de convites, usuários, titulares, inativos e log** foi entregue na tarefa 13.
 
 ## Dependências abertas
