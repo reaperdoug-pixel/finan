@@ -237,6 +237,13 @@ async function percorrerOSistema(): Promise<void> {
   expect((await chamar(admin, "POST", `/lancamentos/${idLanc}/reativar`, confirma)).statusCode).toBe(
     200,
   );
+
+  // Troca da própria senha e volta à anterior (a sessão atual do admin é mantida).
+  const senhaNova = "uma-senha-nova-bem-longa-9";
+  const troca = await chamar(admin, "POST", "/auth/senha", { senha: SENHAS.admin, novaSenha: senhaNova });
+  expect(troca.statusCode).toBe(200);
+  const volta = await chamar(admin, "POST", "/auth/senha", { senha: senhaNova, novaSenha: SENHAS.admin });
+  expect(volta.statusCode).toBe(200);
 }
 
 interface Linha {

@@ -152,7 +152,7 @@ Conferido no navegador: login, painel, lançamentos, categorias, contas, inativo
 - Ver no navegador as telas públicas (`/convite/:token`, `/redefinicao/:token`); elas usam as mesmas classes do login.
 - Pessoas, Log e Titulares não aparecem na navegação do celular (já era assim antes). Avaliar um menu "Mais".
 - Quem não tem `ver` em lançamentos cai em `/painel` e vê o erro de permissão. Avaliar uma página inicial por permissão.
-- As fontes vêm do Google Fonts. Antes do deploy, avaliar hospedar localmente (privacidade e CSP).
+- As fontes são hospedadas localmente (`@fontsource/plus-jakarta-sans` e `@fontsource/jetbrains-mono`), sem Google Fonts.
 - Modo escuro com alternância manual: Fase 4.
 
 **Fora desta sessão (continuam do plano)**

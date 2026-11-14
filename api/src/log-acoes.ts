@@ -23,6 +23,7 @@ export const ACOES_LOG = {
   conviteRevogado: "convite.revogado",
   redefinicaoCriada: "redefinicao.criada",
   redefinicaoConcluida: "redefinicao.concluida",
+  senhaAlterada: "senha.alterada",
   categoriaCriada: "categoria.criada",
   categoriaAlterada: "categoria.alterada",
   categoriaInativada: "categoria.inativada",

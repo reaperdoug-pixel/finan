@@ -1,0 +1,31 @@
+# Modelo do Caddy para a VPS (tarefa 15). Troque o domínio e o caminho do build.
+# O Caddy serve o front (web/dist) e repassa /api para a API em 127.0.0.1:3000,
+# sem o prefixo /api, como o proxy do Vite faz em desenvolvimento.
+# A API já envia nosniff, X-Frame-Options, Referrer-Policy e Cache-Control: no-store.
+# A CSP e o HSTS da página ficam aqui, porque o front é servido pelo Caddy.
+
+finan.exemplo.com.br {
+	encode zstd gzip
+
+	header {
+		# HSTS: só depois de confirmar que o HTTPS está firme em todo o domínio.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Tudo vem do próprio domínio: sem scripts, estilos, fontes ou imagens de terceiros.
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	handle {
+		root * /srv/finan/web/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

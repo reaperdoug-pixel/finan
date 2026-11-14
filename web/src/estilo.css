@@ -1135,6 +1135,23 @@ button:focus-visible, a:focus-visible {
 }
 
 .nav-usuario { display: none; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav) + 20px);
+  transform: translateX(-50%);
+  z-index: 20;
+  margin: 0;
+  max-width: min(26rem, calc(100vw - 32px));
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--tinta);
+  color: var(--fundo);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.45);
+}
+@media (min-width: 800px) { .toast { bottom: 24px; } }
 
 /* Desktop: sidebar de altura total com marca e usuário */
 @media (min-width: 800px) {
@@ -1221,6 +1238,7 @@ button:focus-visible, a:focus-visible {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .nav-acoes { grid-column: 2; display: flex; gap: 12px; }
   .nav-usuario button {
     justify-self: start;
     background: none;

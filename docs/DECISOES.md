@@ -39,4 +39,4 @@ Cada item: decisão e motivo. Para mudar uma, edite aqui explicando o porquê.
 ## Pendentes
 
 - Dados da VPS (sistema operacional, RAM, domínio) e destino do backup externo: definir quando o MCP da Hostinger estiver ativo.
-- Direção visual: nova direção aprovada em 13/11/2026 (decisão 30). Revisar com a cliente no início da Fase 2. Fontes ainda vêm do Google Fonts; hospedar localmente antes do deploy (privacidade e CSP).
+- Direção visual: nova direção aprovada em 13/11/2026 (decisão 30). Revisar com a cliente no início da Fase 2. Fontes agora hospedadas localmente (`@fontsource`, licença OFL), sem chamadas ao Google; CSP restritiva em `deploy/Caddyfile.exemplo`.

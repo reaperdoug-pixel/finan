@@ -31,7 +31,7 @@ Antecipados por decisão do produto em 13/11/2026 (decisões 27 e 28): o painel 
 
 ## Pendências encontradas no caminho (ainda sem tarefa)
 
-- **Trocar a própria senha** estando logado: hoje o usuário só muda a senha por um link de redefinição gerado pelo admin.
+- ~~**Trocar a própria senha** estando logado~~ **Feito** em 14/11/2026: `POST /auth/senha` (senha atual + nova, encerra as outras sessões, ação `senha.alterada` no log) e modal "Alterar senha" na sidebar.
 - **Recuperar a senha do próprio admin:** ele não tem a quem pedir o link. Sugestão: um comando no servidor, no estilo de `npm run admin:criar`, que gera o link de redefinição.
 - **Tela de convites, usuários, titulares, inativos e log** foi entregue na tarefa 13.
 

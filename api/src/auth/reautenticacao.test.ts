@@ -44,6 +44,11 @@ interface Preparado {
    * Nesse caso o "intruso" do teste de papel é um vinculado SEM nenhuma permissão.
    */
   intrusoSemPermissao?: boolean;
+  /**
+   * Operação sobre a própria conta (ex.: trocar a própria senha): qualquer papel logado pode,
+   * e o teste de papel verifica isso em vez de esperar 403.
+   */
+  qualquerPapel?: boolean;
 }
 
 const comSenha = (senha: string | undefined, resto: object = {}) =>
@@ -85,6 +90,29 @@ async function novaCategoria(titularId: string, ativa: boolean): Promise<string>
 }
 
 const casos: [string, () => Promise<Preparado>][] = [
+  [
+    "trocar a própria senha",
+    async () => {
+      const operador = await entrar(env, { papel: "titular" });
+      const hashAntes = (
+        await env.owner.query(`SELECT senha_hash FROM usuario WHERE id = $1`, [operador.id])
+      ).rows[0].senha_hash as string;
+      return {
+        operador,
+        papelDoOperador: "titular",
+        metodo: "POST",
+        url: "/auth/senha",
+        corpo: (s) => comSenha(s, { novaSenha: "outra-senha-longa-456" }),
+        intacto: async () =>
+          (
+            await env.owner.query(`SELECT senha_hash FROM usuario WHERE id = $1`, [operador.id])
+          ).rows[0].senha_hash === hashAntes,
+        acao: "senha.alterada",
+        statusOk: 200,
+        qualquerPapel: true,
+      };
+    },
+  ],
   [
     "convidar usuário vinculado",
     async () => {
@@ -534,7 +562,12 @@ describe.each(casos)("%s", (_nome, preparar) => {
           })
         : await entrar(env, { papel: "titular" });
     const res = await chamar(env, intruso, p.metodo, p.url, p.corpo("senha-correta-123"));
-    expect(res.statusCode).toBe(403);
+    if (p.qualquerPapel) {
+      // Mexe só na conta de quem chama: o vinculado consegue, e a conta do operador fica intacta.
+      expect(res.statusCode).toBe(p.statusOk);
+    } else {
+      expect(res.statusCode).toBe(403);
+    }
     expect(await p.intacto()).toBe(true);
   });
 });

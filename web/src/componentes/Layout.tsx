@@ -1,12 +1,22 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useMe, useSessao } from "../sessao";
 import { Icone, type NomeIcone } from "./Icones";
 import { MarcaFinan } from "./MarcaFinan";
+import { TrocarSenha } from "./TrocarSenha";
 
 export function Layout() {
   const { usuario, permissoes } = useMe();
   const { sair } = useSessao();
   const nav = useNavigate();
+  const [trocando, setTrocando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!aviso) return;
+    const t = setTimeout(() => setAviso(null), 6000);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   async function encerrar() {
     await sair();
@@ -44,6 +54,9 @@ export function Layout() {
         </p>
         <p className="quem">
           <span>{usuario.email}</span>
+          <button type="button" className="sair" onClick={() => setTrocando(true)}>
+            Senha
+          </button>
           <button type="button" className="sair" onClick={() => void encerrar()}>
             Sair
           </button>
@@ -74,14 +87,33 @@ export function Layout() {
           <span className="nav-email" title={usuario.email}>
             {usuario.email}
           </span>
-          <button type="button" onClick={() => void encerrar()}>
-            Sair
-          </button>
+          <span className="nav-acoes">
+            <button type="button" onClick={() => setTrocando(true)}>
+              Alterar senha
+            </button>
+            <button type="button" onClick={() => void encerrar()}>
+              Sair
+            </button>
+          </span>
         </div>
       </nav>
       <main className="folha">
         <Outlet />
       </main>
+      {trocando ? (
+        <TrocarSenha
+          aoFechar={() => setTrocando(false)}
+          aoTrocada={() => {
+            setTrocando(false);
+            setAviso("Senha alterada. Os outros aparelhos foram desconectados.");
+          }}
+        />
+      ) : null}
+      {aviso ? (
+        <p className="toast" role="status">
+          {aviso}
+        </p>
+      ) : null}
       <nav className="nav-baixo" aria-label="Seções">
         {itens.slice(0, 5).map((item) => (
           <NavLink

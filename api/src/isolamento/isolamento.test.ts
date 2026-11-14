@@ -33,6 +33,7 @@ const CATALOGO = [
   "POST /auth/login",
   "GET /auth/me",
   "POST /auth/logout",
+  "POST /auth/senha",
   "POST /admin/convites",
   "GET /admin/convites",
   "GET /convites/:token",
