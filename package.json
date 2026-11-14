@@ -1,0 +1,31 @@
+{
+  "name": "finan",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
+    "admin:criar": "npm run admin:criar -w api",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@playwright/test": "^1.65.0",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.15.0",
+    "pg": "^8.23.1",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^5.1.0"
+  }
+}

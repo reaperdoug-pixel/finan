@@ -1,0 +1,32 @@
+{
+  "name": "@finan/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "admin:criar": "tsx src/cli/criar-admin.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:reset": "tsx src/db/migrate.ts --reset",
+    "db:migrate:test": "tsx src/db/migrate.ts --test"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@finan/shared": "*",
+    "@node-rs/argon2": "^2.2.2",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.1.0",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.19.2"
+  }
+}
