@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { z } from "zod";
 import { exigirPermissao } from "../auth/permissoes.js";
 import type { AuthConfig } from "../auth/routes.js";
@@ -21,12 +21,14 @@ const esquemaCursor = z.object({
   i: z.uuid(),
 });
 
-function lerCursor(texto: string): CursorLog | null {
+/** Cursor inválido é entrada do cliente (400), não falha do servidor: registra em nível debug. */
+function lerCursor(texto: string, log: FastifyBaseLogger): CursorLog | null {
   try {
     const bruto: unknown = JSON.parse(Buffer.from(texto, "base64url").toString("utf8"));
     const r = esquemaCursor.safeParse(bruto);
     return r.success ? r.data : null;
-  } catch {
+  } catch (err) {
+    log.debug({ err }, "cursor do log ilegível");
     return null;
   }
 }
@@ -54,7 +56,7 @@ export function rotasAuditoria(app: FastifyInstance, cfg: AuthConfig): void {
 
     let cursor: CursorLog | undefined;
     if (q.data.cursor) {
-      cursor = lerCursor(q.data.cursor) ?? undefined;
+      cursor = lerCursor(q.data.cursor, req.log) ?? undefined;
       if (!cursor) return reply.code(400).send({ erro: "Cursor inválido" });
     }
 
