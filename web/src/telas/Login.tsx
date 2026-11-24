@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiErro } from "../api";
+import { destinoAposLogin, sessaoExpirou } from "../destino";
 import { rotaInicial } from "../rotas";
 import { useSessao } from "../sessao";
 import { MarcaFinan } from "../componentes/MarcaFinan";
@@ -8,13 +9,20 @@ import { MarcaFinan } from "../componentes/MarcaFinan";
 export function Login() {
   const { me, entrar, carregando } = useSessao();
   const nav = useNavigate();
+  const local = useLocation();
+  const avisoExpirou = sessaoExpirou(local.state);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   if (!carregando && me) {
-    return <Navigate to={rotaInicial(me.permissoes, me.usuario.papel)} replace />;
+    return (
+      <Navigate
+        to={destinoAposLogin(local.state, rotaInicial(me.permissoes, me.usuario.papel))}
+        replace
+      />
+    );
   }
 
   async function enviar(e: FormEvent) {
@@ -23,7 +31,9 @@ export function Login() {
     setEnviando(true);
     try {
       const dados = await entrar(email, senha);
-      nav(rotaInicial(dados.permissoes, dados.usuario.papel), { replace: true });
+      nav(destinoAposLogin(local.state, rotaInicial(dados.permissoes, dados.usuario.papel)), {
+        replace: true,
+      });
     } catch (err) {
       setErro(err instanceof ApiErro ? err.message : "Não foi possível entrar");
     } finally {
@@ -61,6 +71,9 @@ export function Login() {
             required
           />
         </label>
+        {avisoExpirou && !erro ? (
+          <p className="meta">Sua sessão expirou. Entre de novo para continuar.</p>
+        ) : null}
         {erro ? <p className="erro">{erro}</p> : null}
         <button type="submit" className="btn" disabled={enviando || carregando}>
           Entrar

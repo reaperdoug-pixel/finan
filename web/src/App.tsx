@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import type { EstadoLogin } from "./destino";
 import { Layout } from "./componentes/Layout";
 import { rotaInicial } from "./rotas";
 import { useMe, useSessao } from "./sessao";
@@ -15,9 +16,14 @@ import { Convite, Redefinicao } from "./telas/Publicas";
 import { Titulares } from "./telas/Titulares";
 
 function ExigirLogin() {
-  const { me, carregando } = useSessao();
+  const { me, carregando, expirou } = useSessao();
+  const local = useLocation();
   if (carregando) return <p className="vazio">Carregando…</p>;
-  if (!me) return <Navigate to="/login" replace />;
+  if (!me) {
+    // Guarda a rota atual para voltar a ela depois do login.
+    const estado: EstadoLogin = { de: local.pathname + local.search, expirou };
+    return <Navigate to="/login" replace state={estado} />;
+  }
   return <Outlet />;
 }
 

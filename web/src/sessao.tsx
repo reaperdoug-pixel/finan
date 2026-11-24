@@ -1,10 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, ApiErro, definirCsrf } from "./api";
+import { api, ApiErro, definirAoSessaoExpirada, definirCsrf } from "./api";
 import type { Me, Permissoes, UsuarioSessao } from "./tipos";
 
 interface SessaoCtx {
   me: Me | null;
   carregando: boolean;
+  /** true quando a sessão caiu com um 401 no meio do uso (para avisar na tela de login). */
+  expirou: boolean;
   entrar: (email: string, senha: string) => Promise<Me>;
   sair: () => Promise<void>;
   recarregar: () => Promise<void>;
@@ -15,9 +17,21 @@ const Ctx = createContext<SessaoCtx | null>(null);
 export function SessaoProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [expirou, setExpirou] = useState(false);
+
+  // 401 em qualquer chamada protegida: limpa a sessão local. O ExigirLogin leva ao /login.
+  useEffect(() => {
+    definirAoSessaoExpirada(() => {
+      definirCsrf("");
+      setMe(null);
+      setExpirou(true);
+    });
+    return () => definirAoSessaoExpirada(null);
+  }, []);
 
   const aplicar = useCallback((dados: Me) => {
     definirCsrf(dados.csrfToken);
+    setExpirou(false);
     setMe(dados);
   }, []);
 
@@ -62,12 +76,13 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
       /* sessão já inválida */
     }
     definirCsrf("");
+    setExpirou(false);
     setMe(null);
   }, []);
 
   const valor = useMemo(
-    () => ({ me, carregando, entrar, sair, recarregar }),
-    [me, carregando, entrar, sair, recarregar],
+    () => ({ me, carregando, expirou, entrar, sair, recarregar }),
+    [me, carregando, expirou, entrar, sair, recarregar],
   );
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
