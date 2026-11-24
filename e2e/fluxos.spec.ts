@@ -1,12 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
-import { E2E_EMAIL, E2E_SENHA } from "./credenciais";
-
-async function entrar(page: Page, senha = E2E_SENHA) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(E2E_EMAIL);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
+import { expect, test } from "@playwright/test";
+import { E2E_SENHA } from "./credenciais";
+import { entrar } from "./helpers";
 
 test.describe.serial("fluxos principais", () => {
   const sufixo = Date.now().toString(36);
@@ -15,7 +9,7 @@ test.describe.serial("fluxos principais", () => {
   const lancamento = `E2E padaria ${sufixo}`;
 
   test("recusa senha errada", async ({ page }) => {
-    await entrar(page, "senha-errada-999");
+    await entrar(page, { senha: "senha-errada-999" });
     await expect(page.getByText("E-mail ou senha incorretos")).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
   });
