@@ -21,6 +21,9 @@ finan.exemplo.com.br {
 		-Server
 	}
 
+	# O reverse_proxy envia X-Forwarded-For com o IP real do cliente (substitui o que vier
+	# de fora, pois o cliente não é um trusted_proxy do Caddy). A API só aceita esse
+	# cabeçalho quando a conexão vem de loopback (TRUST_PROXY, padrão 127.0.0.1 e ::1).
 	handle_path /api/* {
 		reverse_proxy 127.0.0.1:3000
 	}

@@ -1,6 +1,7 @@
 import { buildApp } from "./app.js";
 import { createDb, createPool } from "./db/client.js";
 import { loadEnv, requireEnv } from "./env.js";
+import { lerProxiesConfiaveis } from "./proxy.js";
 
 loadEnv();
 
@@ -11,6 +12,7 @@ const app = buildApp({
   segredoSessao: requireEnv("SESSION_SECRET"),
   origemApp: process.env.APP_ORIGIN ?? "http://localhost:5173",
   producao,
+  proxiesConfiaveis: lerProxiesConfiaveis(process.env.TRUST_PROXY),
 });
 
 // Escuta só em loopback: o acesso externo passa pelo proxy (Caddy) com HTTPS.

@@ -16,19 +16,22 @@ import { rotasCicloDeUsuarios } from "./usuarios/ciclo-routes.js";
 import { rotasUsuarios } from "./usuarios/routes.js";
 import { tratarErro } from "./erros.js";
 import { opcoesLogger } from "./logger.js";
+import { PROXIES_PADRAO } from "./proxy.js";
 
 export interface AppConfig extends AuthConfig {
   /** Só para testes: destino do log (padrão: stdout) e nível. */
   log?: { stream?: NodeJS.WritableStream; nivel?: string };
+  /** IPs/CIDRs dos proxies cujo X-Forwarded-For é aceito. Padrão: só loopback (Caddy local). */
+  proxiesConfiaveis?: readonly string[];
 }
 
 export function buildApp(cfg: AppConfig): FastifyInstance {
-  // trustProxy: a API só escuta em 127.0.0.1, então o único cliente direto é o
-  // proxy (Caddy), que informa o IP real. Necessário para o limite de tentativas por IP.
+  // trustProxy: só o proxy local (Caddy) informa o IP real via X-Forwarded-For.
+  // De qualquer outro endereço o cabeçalho é ignorado, e o limite por IP usa o IP da conexão.
   const app = Fastify({
     logger: opcoesLogger(cfg.log?.stream, cfg.log?.nivel),
     disableRequestLogging: true,
-    trustProxy: true,
+    trustProxy: [...(cfg.proxiesConfiaveis ?? PROXIES_PADRAO)],
   });
 
   app.setErrorHandler(tratarErro);
