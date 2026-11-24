@@ -7,6 +7,7 @@ import { rotasConvites } from "./convites/routes.js";
 import { rotasAdmin } from "./admin/routes.js";
 import { rotasCategorias } from "./categorias/routes.js";
 import { rotasContas } from "./contas/routes.js";
+import { rotasContatos } from "./contatos/routes.js";
 import { rotasLancamentos } from "./lancamentos/routes.js";
 import { rotasInativos } from "./inativos/routes.js";
 import { rotasPainel } from "./painel/routes.js";
@@ -46,6 +47,7 @@ export function buildApp(cfg: AppConfig): FastifyInstance {
     rotasRedefinicao(instancia, cfg);
     rotasCategorias(instancia, cfg);
     rotasContas(instancia, cfg);
+    rotasContatos(instancia, cfg);
     rotasLancamentos(instancia, cfg);
     rotasInativos(instancia, cfg);
     rotasPainel(instancia, cfg);
