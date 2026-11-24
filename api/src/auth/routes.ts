@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Db } from "../db/client.js";
 import { titular, usuario } from "../db/schema.js";
 import { registrarLog } from "../log.js";
-import { estaBloqueado, registrarTentativa } from "./limite.js";
+import { conferirComLimite } from "./limite.js";
 import { conferirSenha, hashDescartavel } from "./senha.js";
 import {
   buscarSessao,
@@ -138,36 +138,43 @@ export function rotasAuth(app: FastifyInstance, cfg: AuthConfig): void {
     const email = corpo.data.email.toLowerCase();
     const ip = req.ip;
 
-    if (await estaBloqueado(db, email, ip)) {
+    const resultado = await conferirComLimite(
+      db,
+      { email, ip, registrarSucesso: true },
+      async (tx) => {
+        const [linha] = await tx
+          .select({
+            id: usuario.id,
+            email: usuario.email,
+            senhaHash: usuario.senhaHash,
+            papel: usuario.papel,
+            titularId: usuario.titularId,
+            usuarioAtivo: usuario.ativo,
+            titularAtivo: titular.ativo,
+          })
+          .from(usuario)
+          .innerJoin(titular, eq(titular.id, usuario.titularId))
+          .where(eq(sql`lower(${usuario.email})`, email))
+          .limit(1);
+        // Sempre confere um hash (real ou descartável) para o tempo não revelar se o e-mail existe.
+        const senhaOk = await conferirSenha(
+          linha?.senhaHash ?? (await hashDescartavel()),
+          corpo.data.senha,
+        );
+        const sucesso = !!linha && senhaOk && linha.usuarioAtivo && linha.titularAtivo;
+        return { sucesso, valor: { linha, senhaOk } };
+      },
+    );
+
+    if (resultado.bloqueado) {
       await registrarLog(db, { acao: "login.bloqueado", ip });
       return reply
         .code(429)
         .send({ erro: "Muitas tentativas. Aguarde alguns minutos e tente de novo." });
     }
 
-    const [encontrado] = await db
-      .select({
-        id: usuario.id,
-        email: usuario.email,
-        senhaHash: usuario.senhaHash,
-        papel: usuario.papel,
-        titularId: usuario.titularId,
-        usuarioAtivo: usuario.ativo,
-        titularAtivo: titular.ativo,
-      })
-      .from(usuario)
-      .innerJoin(titular, eq(titular.id, usuario.titularId))
-      .where(eq(sql`lower(${usuario.email})`, email))
-      .limit(1);
-
-    // Sempre confere um hash (real ou descartável) para o tempo não revelar se o e-mail existe.
-    const senhaOk = await conferirSenha(
-      encontrado?.senhaHash ?? (await hashDescartavel()),
-      corpo.data.senha,
-    );
-
-    if (!encontrado || !senhaOk || !encontrado.usuarioAtivo || !encontrado.titularAtivo) {
-      await registrarTentativa(db, email, ip, false);
+    const { linha: encontrado, senhaOk } = resultado.valor;
+    if (!resultado.sucesso || !encontrado) {
       await registrarLog(db, {
         acao: "login.falha",
         usuarioId: encontrado?.id ?? null,
@@ -184,7 +191,6 @@ export function rotasAuth(app: FastifyInstance, cfg: AuthConfig): void {
       return reply.code(401).send({ erro: "E-mail ou senha incorretos" });
     }
 
-    await registrarTentativa(db, email, ip, true);
     const nova = await criarSessao(db, cfg.segredoSessao, {
       usuarioId: encontrado.id,
       ip,

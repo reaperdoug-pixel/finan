@@ -3,7 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { Db } from "../db/client.js";
 import { usuario } from "../db/schema.js";
 import { registrarLog } from "../log.js";
-import { estaBloqueado, registrarTentativa } from "./limite.js";
+import { conferirComLimite } from "./limite.js";
 import { conferirSenha } from "./senha.js";
 import type { SessaoAtual } from "./sessao.js";
 
@@ -47,7 +47,22 @@ export async function reautenticar(
 ): Promise<ResultadoReautenticacao> {
   const email = sessao.usuario.email.toLowerCase();
 
-  if (await estaBloqueado(db, email, ip)) {
+  const resultado = await conferirComLimite(
+    db,
+    // Reautenticar com sucesso não grava tentativa (comportamento anterior): só as falhas contam.
+    { email, ip, registrarSucesso: false },
+    async (tx) => {
+      const [u] = await tx
+        .select({ senhaHash: usuario.senhaHash })
+        .from(usuario)
+        .where(eq(usuario.id, sessao.usuario.id))
+        .limit(1);
+      const sucesso = !!u && (await conferirSenha(u.senhaHash, senha));
+      return { sucesso, valor: null };
+    },
+  );
+
+  if (resultado.bloqueado) {
     await registrarLog(db, {
       acao: "reautenticacao.bloqueada",
       usuarioId: sessao.usuario.id,
@@ -61,14 +76,7 @@ export async function reautenticar(
     };
   }
 
-  const [u] = await db
-    .select({ senhaHash: usuario.senhaHash })
-    .from(usuario)
-    .where(eq(usuario.id, sessao.usuario.id))
-    .limit(1);
-
-  if (!u || !(await conferirSenha(u.senhaHash, senha))) {
-    await registrarTentativa(db, email, ip, false);
+  if (!resultado.sucesso) {
     await registrarLog(db, {
       acao: "reautenticacao.falha",
       usuarioId: sessao.usuario.id,
