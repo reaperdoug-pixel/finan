@@ -6,10 +6,14 @@ import { formatarData, rotuloTipo } from "../formato";
 import { useMe } from "../sessao";
 import type { ListaInativos } from "../tipos";
 
-type Alvo = { tipo: "lancamento" | "categoria" | "conta" | "usuario"; id: string; nome: string };
+type Alvo = {
+  tipo: "lancamento" | "categoria" | "conta" | "contato" | "usuario";
+  id: string;
+  nome: string;
+};
 
 export function Inativos() {
-  const { usuario } = useMe();
+  const { usuario, permissoes } = useMe();
   const [dados, setDados] = useState<ListaInativos | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<Alvo | null>(null);
@@ -29,6 +33,8 @@ export function Inativos() {
         return `/categorias/${a.id}/reativar`;
       case "conta":
         return `/contas/${a.id}/reativar`;
+      case "contato":
+        return `/contatos/${a.id}/reativar`;
       case "usuario":
         return `/usuarios/${a.id}/reativar`;
       default: {
@@ -40,7 +46,12 @@ export function Inativos() {
 
   const vazio =
     dados &&
-    dados.lancamentos.length + dados.categorias.length + dados.contas.length + dados.usuarios.length === 0;
+    dados.lancamentos.length +
+      dados.categorias.length +
+      dados.contas.length +
+      dados.contatos.length +
+      dados.usuarios.length ===
+      0;
 
   return (
     <>
@@ -51,6 +62,7 @@ export function Inativos() {
         </div>
       </div>
       {erro ? <p className="erro">{erro}</p> : null}
+      {!dados && !erro ? <p className="vazio">Carregando…</p> : null}
       {vazio ? <p className="vazio">Nada inativo no momento</p> : null}
       {dados?.lancamentos.length ? (
         <>
@@ -58,20 +70,28 @@ export function Inativos() {
           <ul className="lista">
             {dados.lancamentos.map((l) => (
               <li key={l.id} className={`caderno ${l.tipo}`}>
+                <span className={`marca-tipo ${l.tipo}`} aria-hidden="true">
+                  {l.tipo === "receita" ? "+" : "−"}
+                </span>
                 <strong>{l.descricao}</strong>
-                <span className={`valor ${l.tipo}`}>{formatBRL(l.valor)}</span>
+                <span className={`valor ${l.tipo}`}>
+                  {l.tipo === "despesa" ? "−" : "+"}
+                  {formatBRL(l.valor)}
+                </span>
                 <span className="meta">{formatarData(l.data)}</span>
                 {l.impedimento ? <p className="aviso">{l.impedimento.mensagem}</p> : null}
-                <div className="acoes">
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={Boolean(l.impedimento)}
-                    onClick={() => setAlvo({ tipo: "lancamento", id: l.id, nome: l.descricao })}
-                  >
-                    Reativar
-                  </button>
-                </div>
+                {permissoes.lancamentos.excluir ? (
+                  <div className="acoes">
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={Boolean(l.impedimento)}
+                      onClick={() => setAlvo({ tipo: "lancamento", id: l.id, nome: l.descricao })}
+                    >
+                      Reativar
+                    </button>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -85,16 +105,18 @@ export function Inativos() {
               <li key={c.id}>
                 <strong>{c.nome}</strong>
                 {c.impedimento ? <p className="aviso">{c.impedimento.mensagem}</p> : null}
-                <div className="acoes">
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={Boolean(c.impedimento)}
-                    onClick={() => setAlvo({ tipo: "categoria", id: c.id, nome: c.nome })}
-                  >
-                    Reativar
-                  </button>
-                </div>
+                {permissoes.categorias.excluir ? (
+                  <div className="acoes">
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={Boolean(c.impedimento)}
+                      onClick={() => setAlvo({ tipo: "categoria", id: c.id, nome: c.nome })}
+                    >
+                      Reativar
+                    </button>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -108,15 +130,43 @@ export function Inativos() {
               <li key={c.id}>
                 <strong>{c.nome}</strong>
                 <span className="meta">{rotuloTipo(c.tipo)}</span>
-                <div className="acoes">
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => setAlvo({ tipo: "conta", id: c.id, nome: c.nome })}
-                  >
-                    Reativar
-                  </button>
-                </div>
+                {permissoes.contas.excluir ? (
+                  <div className="acoes">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => setAlvo({ tipo: "conta", id: c.id, nome: c.nome })}
+                    >
+                      Reativar
+                    </button>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {dados?.contatos.length ? (
+        <>
+          <h2>Contatos</h2>
+          <ul className="lista">
+            {dados.contatos.map((c) => (
+              <li key={c.id}>
+                <strong>{c.nome}</strong>
+                <span className="meta">
+                  {c.tipo.toUpperCase()} · {rotuloTipo(c.papel)}
+                </span>
+                {permissoes.contatos.excluir ? (
+                  <div className="acoes">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => setAlvo({ tipo: "contato", id: c.id, nome: c.nome })}
+                    >
+                      Reativar
+                    </button>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

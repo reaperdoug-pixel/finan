@@ -1,8 +1,9 @@
 import { formatBRL, parseBRLToCents } from "@finan/shared";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ApiErro } from "../api";
-import { Modal } from "../componentes/Modal";
 import { DialogoSenha } from "../componentes/DialogoSenha";
+import { Icone, iconeConta } from "../componentes/Icones";
+import { Modal } from "../componentes/Modal";
 import { rotuloTipo } from "../formato";
 import { useMe } from "../sessao";
 import type { Conta } from "../tipos";
@@ -63,7 +64,7 @@ export function Contas() {
                 {g.itens.map((c) => (
                   <li key={c.id} className={`caderno ${c.saldo < 0 ? "despesa" : "receita"}`}>
                     <span className={`marca-tipo ${c.saldo < 0 ? "despesa" : "receita"}`} aria-hidden="true">
-                      {c.nome.slice(0, 1).toUpperCase()}
+                      <Icone nome={iconeConta(c.tipo)} />
                     </span>
                     <strong>{c.nome}</strong>
                     <span className={`valor ${c.saldo < 0 ? "despesa" : "receita"}`}>
@@ -119,15 +120,17 @@ function FormConta({
     inicial ? (inicial.saldoInicial / 100).toFixed(2).replace(".", ",") : "0,00",
   );
   const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
     const saldoInicial = parseBRLToCents(saldoTxt);
     if (saldoInicial === null) {
-      setErro("Informe o saldo inicial, como 0,00 ou 150,50");
+      setErro("Informe o saldo inicial usando vírgula, como 0,00 ou 150,50");
       return;
     }
     setErro(null);
+    setEnviando(true);
     try {
       if (inicial) {
         await api(`/contas/${inicial.id}`, { method: "PATCH", body: { nome, tipo, saldoInicial } });
@@ -137,6 +140,8 @@ function FormConta({
       await aoSalvo();
     } catch (err) {
       setErro(err instanceof ApiErro ? err.message : "Não foi possível salvar");
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -144,6 +149,7 @@ function FormConta({
     <Modal
       titulo={inicial ? "Editar conta" : "Nova conta"}
       icone={inicial ? "editar" : "mais"}
+      enviando={enviando}
       erro={erro}
       aoEnviar={(e) => void enviar(e)}
       aoFechar={aoCancelar}

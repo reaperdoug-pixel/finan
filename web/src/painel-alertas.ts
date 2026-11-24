@@ -65,7 +65,7 @@ export function gerarAlertas(p: Painel): Alerta[] {
       nivel: "critico",
       titulo: "O saldo não cobre o que está previsto",
       detalhe: `Faltam ${formatBRL(falta - p.contas.total)} para os previstos de ${mesPorExtenso(p.mes)}`,
-      para: "/lancamentos",
+      para: `/lancamentos?mes=${p.mes}&status=previsto`,
     });
   }
 
@@ -75,7 +75,7 @@ export function gerarAlertas(p: Painel): Alerta[] {
       nivel: p.atual.receitas > 0 ? "critico" : "atencao",
       titulo: "Saiu mais do que entrou",
       detalhe: `${formatBRL(p.atual.despesas - p.atual.receitas)} a mais em ${mesPorExtenso(p.mes)}`,
-      para: "/lancamentos",
+      para: `/lancamentos?mes=${p.mes}&tipo=despesa`,
     });
   }
 
@@ -86,7 +86,7 @@ export function gerarAlertas(p: Painel): Alerta[] {
       nivel: "atencao",
       titulo: n === 1 ? "1 lançamento previsto atrasou" : `${n} lançamentos previstos atrasaram`,
       detalhe: "A data já passou e ainda não foram marcados como realizados",
-      para: "/lancamentos",
+      para: "/lancamentos?status=previsto&periodo=todos",
     });
   }
 
@@ -97,7 +97,7 @@ export function gerarAlertas(p: Painel): Alerta[] {
       nivel: "atencao",
       titulo: `${subiu.c.nome} subiu ${subiu.v.pct}%`,
       detalhe: `${formatBRL(subiu.v.abs)} a mais que em ${mesPorExtenso(p.mesAnterior)}`,
-      para: "/lancamentos",
+      para: `/lancamentos?mes=${p.mes}&tipo=despesa`,
     });
   }
 

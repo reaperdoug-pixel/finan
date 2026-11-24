@@ -88,6 +88,7 @@ describe("gerarAlertas", () => {
   it("previstos atrasados pedem atenção, no singular e no plural", () => {
     const um = gerarAlertas(base({ atrasados: { quantidade: 1, receitas: 0, despesas: 100 } }));
     expect(um[0]!.titulo).toBe("1 lançamento previsto atrasou");
+    expect(um[0]!.para).toBe("/lancamentos?status=previsto&periodo=todos");
     const tres = gerarAlertas(base({ atrasados: { quantidade: 3, receitas: 0, despesas: 100 } }));
     expect(tres[0]!.titulo).toBe("3 lançamentos previstos atrasaram");
   });

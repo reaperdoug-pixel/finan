@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ApiErro } from "../api";
+import { rotaInicial } from "../rotas";
 import { useSessao } from "../sessao";
 import { MarcaFinan } from "../componentes/MarcaFinan";
 
@@ -12,15 +13,17 @@ export function Login() {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  if (!carregando && me) return <Navigate to="/painel" replace />;
+  if (!carregando && me) {
+    return <Navigate to={rotaInicial(me.permissoes, me.usuario.papel)} replace />;
+  }
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
     setErro(null);
     setEnviando(true);
     try {
-      await entrar(email, senha);
-      nav("/painel", { replace: true });
+      const dados = await entrar(email, senha);
+      nav(rotaInicial(dados.permissoes, dados.usuario.papel), { replace: true });
     } catch (err) {
       setErro(err instanceof ApiErro ? err.message : "Não foi possível entrar");
     } finally {
@@ -33,9 +36,9 @@ export function Login() {
       <form className="caixa" onSubmit={(e) => void enviar(e)}>
         <h1 className="marca">
           <MarcaFinan />
-            <span className="marca-nome">finan</span>
+          <span className="marca-nome">finan</span>
         </h1>
-        <p className="meta">Caderneta de receitas e despesas</p>
+        <p className="meta">Controle de receitas, despesas e contas</p>
         <label>
           E-mail
           <input

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { api, ApiErro } from "../api";
-import { Modal } from "../componentes/Modal";
 import { DialogoSenha } from "../componentes/DialogoSenha";
+import { LinkConvite } from "../componentes/LinkConvite";
+import { Modal } from "../componentes/Modal";
+import { rotaInicial } from "../rotas";
 import { useMe } from "../sessao";
 
 interface Titular {
@@ -18,7 +20,7 @@ interface ConviteAdmin {
 }
 
 export function Titulares() {
-  const { usuario } = useMe();
+  const { usuario, permissoes } = useMe();
   const [lista, setLista] = useState<Titular[]>([]);
   const [convites, setConvites] = useState<ConviteAdmin[]>([]);
   const [erro, setErro] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export function Titulares() {
     carregar().catch((e) => setErro(e instanceof ApiErro ? e.message : "Falha ao carregar"));
   }, [carregar, usuario.papel]);
 
-  if (usuario.papel !== "admin") return <Navigate to="/lancamentos" replace />;
+  if (usuario.papel !== "admin") return <Navigate to={rotaInicial(permissoes, usuario.papel)} replace />;
 
   return (
     <>
@@ -52,11 +54,7 @@ export function Titulares() {
         </button>
       </div>
       {erro ? <p className="erro">{erro}</p> : null}
-      {link ? (
-        <p className="aviso">
-          Entregue este link uma vez: <code>{link}</code>
-        </p>
-      ) : null}
+      {link ? <LinkConvite link={link} /> : null}
       {convidando ? (
         <ConviteTitular
           aoFechar={() => setConvidando(false)}

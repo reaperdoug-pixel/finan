@@ -4,6 +4,7 @@ export type Modulo =
   | "lancamentos"
   | "categorias"
   | "contas"
+  | "contatos"
   | "orcamentos"
   | "anexos"
   | "log";
@@ -34,6 +35,7 @@ export interface Lancamento {
   origem: "manual";
   categoriaId: string;
   contaId: string;
+  contatoId: string | null;
   valorPrevistoOriginal: number | null;
   ativo: boolean;
 }
@@ -58,6 +60,21 @@ export interface Conta {
   saldoInicial: number;
   saldo: number;
   ativo: boolean;
+}
+
+export interface Contato {
+  id: string;
+  nome: string;
+  tipo: "pf" | "pj";
+  papel: "cliente" | "fornecedor" | "ambos";
+  documento: string | null;
+  observacao: string | null;
+  ativo: boolean;
+  recebido: number;
+  pago: number;
+  aReceber: number;
+  aPagar: number;
+  totalLancamentos: number;
 }
 
 export interface TotaisMes {
@@ -120,6 +137,7 @@ export interface ListaInativos {
   lancamentos: Array<InativoBase & { descricao: string; valor: number; data: string; tipo: string }>;
   categorias: Array<InativoBase & { nome: string }>;
   contas: Array<InativoBase & { nome: string; tipo: string }>;
+  contatos: Array<InativoBase & { nome: string; tipo: string; papel: string }>;
   usuarios: Array<InativoBase & { email: string }>;
 }
 

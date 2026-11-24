@@ -3,6 +3,11 @@ export type NomeIcone =
   | "lancamentos"
   | "categorias"
   | "contas"
+  | "contatos"
+  | "pf"
+  | "pj"
+  | "banco"
+  | "cartao"
   | "inativos"
   | "pessoas"
   | "log"
@@ -12,7 +17,10 @@ export type NomeIcone =
   | "editar"
   | "cadeado"
   | "fechar"
-  | "info";
+  | "info"
+  | "copiar"
+  | "check"
+  | "menu";
 
 const svg = {
   viewBox: "0 0 24 24",
@@ -25,6 +33,12 @@ const svg = {
   strokeLinejoin: "round" as const,
   "aria-hidden": true as const,
 };
+
+export function iconeConta(tipo: "carteira" | "banco" | "cartao"): NomeIcone {
+  if (tipo === "banco") return "banco";
+  if (tipo === "cartao") return "cartao";
+  return "contas";
+}
 
 export function Icone({ nome }: { nome: NomeIcone }) {
   switch (nome) {
@@ -50,6 +64,40 @@ export function Icone({ nome }: { nome: NomeIcone }) {
       return (
         <svg {...svg}>
           <path d="M3 8a2 2 0 0 1 2-2h13v3M3 8v9a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-1M16.5 14h.01" />
+        </svg>
+      );
+    case "contatos":
+      return (
+        <svg {...svg}>
+          <rect x="4" y="3" width="16" height="18" rx="2" />
+          <circle cx="12" cy="10" r="2.5" />
+          <path d="M8 17a4 4 0 0 1 8 0" />
+        </svg>
+      );
+    case "pf":
+      return (
+        <svg {...svg}>
+          <circle cx="12" cy="8" r="3.5" />
+          <path d="M5 20a7 7 0 0 1 14 0" />
+        </svg>
+      );
+    case "pj":
+      return (
+        <svg {...svg}>
+          <path d="M4 20V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15M14 10h5a1 1 0 0 1 1 1v9M2 20h20M8 8h2M8 12h2M8 16h2M16.5 14h1" />
+        </svg>
+      );
+    case "banco":
+      return (
+        <svg {...svg}>
+          <path d="M3 10h18M4 20h16M6 10v7M10 10v7M14 10v7M18 10v7M3 10l9-6 9 6" />
+        </svg>
+      );
+    case "cartao":
+      return (
+        <svg {...svg}>
+          <rect x="3" y="6" width="18" height="12" rx="2" />
+          <path d="M3 10h18M7 15h4" />
         </svg>
       );
     case "inativos":
@@ -112,6 +160,27 @@ export function Icone({ nome }: { nome: NomeIcone }) {
       return (
         <svg {...svg}>
           <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM18.5 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2z" />
+        </svg>
+      );
+    case "copiar":
+      return (
+        <svg {...svg}>
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg {...svg}>
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+      );
+    case "menu":
+      return (
+        <svg {...svg}>
+          <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
         </svg>
       );
     default: {

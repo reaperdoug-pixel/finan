@@ -1,8 +1,10 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Layout } from "./componentes/Layout";
-import { useSessao } from "./sessao";
+import { rotaInicial } from "./rotas";
+import { useMe, useSessao } from "./sessao";
 import { Categorias } from "./telas/Categorias";
 import { Contas } from "./telas/Contas";
+import { Contatos } from "./telas/Contatos";
 import { Inativos } from "./telas/Inativos";
 import { Lancamentos } from "./telas/Lancamentos";
 import { Log } from "./telas/Log";
@@ -19,6 +21,11 @@ function ExigirLogin() {
   return <Outlet />;
 }
 
+function Inicio() {
+  const { usuario, permissoes } = useMe();
+  return <Navigate to={rotaInicial(permissoes, usuario.papel)} replace />;
+}
+
 export function App() {
   return (
     <Routes>
@@ -27,11 +34,12 @@ export function App() {
       <Route path="/redefinicao/:token" element={<Redefinicao />} />
       <Route element={<ExigirLogin />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/painel" replace />} />
+          <Route path="/" element={<Inicio />} />
           <Route path="/painel" element={<PainelGeral />} />
           <Route path="/lancamentos" element={<Lancamentos />} />
           <Route path="/categorias" element={<Categorias />} />
           <Route path="/contas" element={<Contas />} />
+          <Route path="/contatos" element={<Contatos />} />
           <Route path="/inativos" element={<Inativos />} />
           <Route path="/pessoas" element={<Pessoas />} />
           <Route path="/log" element={<Log />} />

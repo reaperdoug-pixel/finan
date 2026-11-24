@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ApiErro } from "../api";
-import { Modal } from "../componentes/Modal";
 import { DialogoSenha } from "../componentes/DialogoSenha";
+import { LinkConvite } from "../componentes/LinkConvite";
+import { Modal } from "../componentes/Modal";
 import type { Acao, Modulo, Permissoes } from "../tipos";
 
 const MODULOS: { id: Modulo; nome: string }[] = [
   { id: "lancamentos", nome: "Lançamentos" },
   { id: "categorias", nome: "Categorias" },
   { id: "contas", nome: "Contas" },
+  { id: "contatos", nome: "Contatos" },
   { id: "log", nome: "Log" },
 ];
 const ACOES: { id: Acao; nome: string }[] = [
@@ -31,7 +33,15 @@ interface ConvitePendente {
 
 function permissoesVazias(): Permissoes {
   const p = {} as Permissoes;
-  for (const m of ["lancamentos", "categorias", "contas", "orcamentos", "anexos", "log"] as Modulo[]) {
+  for (const m of [
+    "lancamentos",
+    "categorias",
+    "contas",
+    "contatos",
+    "orcamentos",
+    "anexos",
+    "log",
+  ] as Modulo[]) {
     p[m] = { ver: false, cadastrar: false, alterar: false, excluir: false };
   }
   return p;
@@ -66,11 +76,7 @@ export function Pessoas() {
         </button>
       </div>
       {erro ? <p className="erro">{erro}</p> : null}
-      {link ? (
-        <p className="aviso">
-          Entregue este link uma vez: <code>{link}</code>
-        </p>
-      ) : null}
+      {link ? <LinkConvite link={link} /> : null}
       {convidando ? (
         <ConviteForm
           aoFechar={() => setConvidando(false)}

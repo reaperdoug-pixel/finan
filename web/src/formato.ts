@@ -64,9 +64,26 @@ export function rotuloTipo(t: string): string {
   if (t === "carteira") return "Carteira";
   if (t === "banco") return "Banco";
   if (t === "cartao") return "Cartão";
+  if (t === "pf") return "Pessoa física";
+  if (t === "pj") return "Pessoa jurídica";
+  if (t === "cliente") return "Cliente";
+  if (t === "fornecedor") return "Fornecedor";
+  if (t === "ambos") return "Cliente e fornecedor";
   if (t === "fixa") return "Fixa";
   if (t === "variavel") return "Variável";
   if (t === "previsto") return "Previsto";
   if (t === "realizado") return "Realizado";
   return t;
+}
+
+/** Formata CPF (11 dígitos) ou CNPJ (14 dígitos). */
+export function formatarDocumento(doc: string | null): string {
+  if (!doc) return "";
+  if (doc.length === 11) {
+    return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  }
+  if (doc.length === 14) {
+    return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  }
+  return doc;
 }

@@ -5,7 +5,7 @@ import type { Me, Permissoes, UsuarioSessao } from "./tipos";
 interface SessaoCtx {
   me: Me | null;
   carregando: boolean;
-  entrar: (email: string, senha: string) => Promise<void>;
+  entrar: (email: string, senha: string) => Promise<Me>;
   sair: () => Promise<void>;
   recarregar: () => Promise<void>;
 }
@@ -42,13 +42,15 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   }, [recarregar]);
 
   const entrar = useCallback(
-    async (email: string, senha: string) => {
+    async (email: string, senha: string): Promise<Me> => {
       const r = await api<{ csrfToken: string }>("/auth/login", {
         method: "POST",
         body: { email, senha },
       });
       definirCsrf(r.csrfToken);
-      aplicar(await api<Me>("/auth/me"));
+      const dados = await api<Me>("/auth/me");
+      aplicar(dados);
+      return dados;
     },
     [aplicar],
   );
