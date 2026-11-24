@@ -1,3 +1,4 @@
+import { MAX_CENTAVOS, MIN_CENTAVOS } from "@finan/shared";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
 import { exigirPermissao } from "../auth/permissoes.js";
@@ -15,7 +16,11 @@ import {
 
 const nome = z.string().trim().min(1, "Informe o nome").max(80, "O nome pode ter até 80 caracteres");
 const tipo = z.enum(["carteira", "banco", "cartao"]);
-const centavos = z.number().int("O valor deve ser em centavos (número inteiro)");
+const centavos = z
+  .number()
+  .int("O valor deve ser em centavos (número inteiro)")
+  .min(MIN_CENTAVOS, "O valor excede o limite suportado")
+  .max(MAX_CENTAVOS, "O valor excede o limite suportado");
 
 const corpoCriar = z.object({
   nome,

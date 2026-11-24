@@ -1,6 +1,7 @@
+import { MAX_CENTAVOS } from "@finan/shared";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
-import { exigirPermissao, podeLancar } from "../auth/permissoes.js";
+import { exigirPermissao, podeLancar, temPermissao } from "../auth/permissoes.js";
 import { confirmarSenha } from "../auth/reautenticacao.js";
 import type { AuthConfig } from "../auth/routes.js";
 import {
@@ -26,7 +27,8 @@ const observacao = z
 const valor = z
   .number()
   .int("O valor deve ser em centavos (número inteiro)")
-  .positive("O valor deve ser maior que zero");
+  .positive("O valor deve ser maior que zero")
+  .max(MAX_CENTAVOS, "O valor excede o limite suportado");
 const tipo = z.enum(["receita", "despesa"]);
 const natureza = z.enum(["fixa", "variavel"]);
 const status = z.enum(["previsto", "realizado"]);
@@ -43,6 +45,7 @@ const data = z.string().refine(dataCalendario, "Informe a data no formato AAAA-M
 const corpoCriar = z.object({
   categoriaId: z.uuid(),
   contaId: z.uuid(),
+  contatoId: z.uuid().nullable().optional(),
   valor,
   data,
   descricao,
@@ -56,6 +59,7 @@ const corpoAlterar = z
   .object({
     categoriaId: z.uuid().optional(),
     contaId: z.uuid().optional(),
+    contatoId: z.uuid().nullable().optional(),
     valor: valor.optional(),
     data: data.optional(),
     descricao: descricao.optional(),
@@ -70,6 +74,7 @@ const consultaLista = z.object({
   incluirInativos: z.enum(["true", "false"]).optional(),
   categoriaId: z.uuid().optional(),
   contaId: z.uuid().optional(),
+  contatoId: z.uuid().optional(),
   tipo: tipo.optional(),
   status: status.optional(),
   dataDesde: data.optional(),
@@ -83,6 +88,7 @@ const STATUS: Record<CodigoErroLancamento, number> = {
   nao_e_folha: 409,
   categoria_inativa: 409,
   conta_inativa: 409,
+  contato_inativo: 409,
   tipo_diferente: 400,
   ja_inativo: 409,
   ja_ativo: 409,
@@ -109,6 +115,7 @@ export function rotasLancamentos(app: FastifyInstance, cfg: AuthConfig): void {
       incluirInativos: q.data.incluirInativos === "true",
       categoriaId: q.data.categoriaId,
       contaId: q.data.contaId,
+      contatoId: q.data.contatoId,
       tipo: q.data.tipo,
       status: q.data.status,
       dataDesde: q.data.dataDesde,
@@ -124,6 +131,9 @@ export function rotasLancamentos(app: FastifyInstance, cfg: AuthConfig): void {
     const corpo = corpoCriar.safeParse(req.body);
     if (!corpo.success) {
       return reply.code(400).send({ erro: corpo.error.issues[0]?.message ?? "Dados inválidos" });
+    }
+    if (corpo.data.contatoId && !temPermissao(req.sessao, "contatos", "ver")) {
+      return reply.code(403).send({ erro: "Sem permissão" });
     }
     try {
       const criado = await criarLancamento(
@@ -148,6 +158,9 @@ export function rotasLancamentos(app: FastifyInstance, cfg: AuthConfig): void {
         ? "Informe o que alterar"
         : (corpo.error.issues[0]?.message ?? "Dados inválidos");
       return reply.code(400).send({ erro: msg });
+    }
+    if (corpo.data.contatoId && !temPermissao(req.sessao, "contatos", "ver")) {
+      return reply.code(403).send({ erro: "Sem permissão" });
     }
     try {
       return await alterarLancamento(

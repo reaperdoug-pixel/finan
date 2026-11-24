@@ -321,14 +321,20 @@ export async function reativarCategoria(db: Db, ctx: Contexto, id: string): Prom
     if (c.ativo) throw new ErroCategoria("ja_ativa", "A categoria já está ativa");
 
     if (c.paiId) {
-      const [pai] = await tx
-        .select({ ativo: categoria.ativo })
-        .from(categoria)
-        .where(and(eq(categoria.id, c.paiId), eq(categoria.titularId, ctx.titularId)));
+      const pai = await travar(tx, ctx.titularId, c.paiId);
       if (!pai?.ativo) {
         throw new ErroCategoria(
           "pai_inativo",
           "A categoria pai está inativa. Reative a categoria pai primeiro",
+        );
+      }
+      const comLancamentos = await contarLancamentosAtivos(tx, ctx.titularId, pai.id);
+      if (comLancamentos > 0) {
+        throw new ErroCategoria(
+          "pai_com_lancamentos",
+          "A categoria pai já tem lançamentos ativos e não pode ter subcategorias. " +
+            "Inative os lançamentos antes",
+          { lancamentosAtivos: comLancamentos },
         );
       }
     }

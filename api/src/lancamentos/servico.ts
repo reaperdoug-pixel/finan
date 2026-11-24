@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import { camposInativacao, camposReativacao } from "../ciclo-de-vida.js";
 import type { Db } from "../db/client.js";
-import { categoria, conta, lancamento } from "../db/schema.js";
+import { categoria, conta, contato, lancamento } from "../db/schema.js";
 import { registrarLog } from "../log.js";
 
 export type TipoLancamento = "receita" | "despesa";
@@ -13,6 +13,7 @@ export type CodigoErroLancamento =
   | "nao_e_folha"
   | "categoria_inativa"
   | "conta_inativa"
+  | "contato_inativo"
   | "tipo_diferente"
   | "ja_inativo"
   | "ja_ativo"
@@ -48,6 +49,7 @@ export interface LancamentoPublico {
   origem: "manual";
   categoriaId: string;
   contaId: string;
+  contatoId: string | null;
   valorPrevistoOriginal: number | null;
   ativo: boolean;
 }
@@ -65,6 +67,7 @@ function paraPublico(l: typeof lancamento.$inferSelect): LancamentoPublico {
     origem: l.origem,
     categoriaId: l.categoriaId,
     contaId: l.contaId,
+    contatoId: l.contatoId,
     valorPrevistoOriginal: l.valorPrevistoOriginal,
     ativo: l.ativo,
   };
@@ -93,6 +96,15 @@ async function travarConta(tx: Tx, titularId: string, id: string) {
     .select()
     .from(conta)
     .where(and(eq(conta.id, id), eq(conta.titularId, titularId)))
+    .for("update");
+  return c;
+}
+
+async function travarContato(tx: Tx, titularId: string, id: string) {
+  const [c] = await tx
+    .select()
+    .from(contato)
+    .where(and(eq(contato.id, id), eq(contato.titularId, titularId)))
     .for("update");
   return c;
 }
@@ -142,10 +154,20 @@ async function exigirContaAtiva(tx: Tx, titularId: string, contaId: string) {
   return c;
 }
 
+async function exigirContatoAtivo(tx: Tx, titularId: string, contatoId: string) {
+  const c = await travarContato(tx, titularId, contatoId);
+  if (!c) throw new ErroLancamento("nao_encontrado", "Contato não encontrado");
+  if (!c.ativo) {
+    throw new ErroLancamento("contato_inativo", "O contato está inativo. Reative-o primeiro");
+  }
+  return c;
+}
+
 export interface FiltroLancamentos {
   incluirInativos: boolean;
   categoriaId?: string;
   contaId?: string;
+  contatoId?: string;
   tipo?: TipoLancamento;
   status?: StatusLancamento;
   dataDesde?: string;
@@ -163,6 +185,7 @@ export async function listarLancamentos(
   if (!f.incluirInativos) condicoes.push(eq(lancamento.ativo, true));
   if (f.categoriaId) condicoes.push(eq(lancamento.categoriaId, f.categoriaId));
   if (f.contaId) condicoes.push(eq(lancamento.contaId, f.contaId));
+  if (f.contatoId) condicoes.push(eq(lancamento.contatoId, f.contatoId));
   if (f.tipo) condicoes.push(eq(lancamento.tipo, f.tipo));
   if (f.status) condicoes.push(eq(lancamento.status, f.status));
   if (f.dataDesde) condicoes.push(gte(lancamento.data, f.dataDesde));
@@ -189,6 +212,7 @@ export async function listarLancamentos(
 export interface NovoLancamento {
   categoriaId: string;
   contaId: string;
+  contatoId?: string | null;
   valor: number;
   data: string;
   descricao: string;
@@ -206,6 +230,7 @@ export async function criarLancamento(
   return db.transaction(async (tx) => {
     const cat = await exigirFolhaAtiva(tx, ctx.titularId, dados.categoriaId, dados.tipo);
     await exigirContaAtiva(tx, ctx.titularId, dados.contaId);
+    if (dados.contatoId) await exigirContatoAtivo(tx, ctx.titularId, dados.contatoId);
 
     const [criado] = await tx
       .insert(lancamento)
@@ -213,6 +238,7 @@ export async function criarLancamento(
         titularId: ctx.titularId,
         categoriaId: cat.id,
         contaId: dados.contaId,
+        contatoId: dados.contatoId ?? null,
         valor: dados.valor,
         tipo: cat.tipo,
         natureza: dados.natureza ?? cat.natureza,
@@ -241,6 +267,7 @@ export async function criarLancamento(
         status: criado.status,
         categoriaId: criado.categoriaId,
         contaId: criado.contaId,
+        ...(criado.contatoId ? { contatoId: criado.contatoId } : {}),
       },
     });
     return paraPublico(criado);
@@ -250,6 +277,7 @@ export async function criarLancamento(
 export interface AlteracaoLancamento {
   categoriaId?: string;
   contaId?: string;
+  contatoId?: string | null;
   valor?: number;
   data?: string;
   descricao?: string;
@@ -283,6 +311,7 @@ export async function alterarLancamento(
       }
     }
     if (campos.contaId) await exigirContaAtiva(tx, ctx.titularId, campos.contaId);
+    if (campos.contatoId) await exigirContatoAtivo(tx, ctx.titularId, campos.contatoId);
     if (campos.natureza !== undefined) natureza = campos.natureza;
 
     const realizou = atual.status === "previsto" && campos.status === "realizado";
@@ -293,6 +322,7 @@ export async function alterarLancamento(
     const proximo = {
       categoriaId,
       contaId: campos.contaId ?? atual.contaId,
+      contatoId: campos.contatoId === undefined ? atual.contatoId : campos.contatoId,
       valor: campos.valor ?? atual.valor,
       data: campos.data ?? atual.data,
       descricao: campos.descricao ?? atual.descricao,
@@ -308,6 +338,7 @@ export async function alterarLancamento(
     const chaves = [
       "categoriaId",
       "contaId",
+      "contatoId",
       "valor",
       "data",
       "descricao",
@@ -380,12 +411,27 @@ export async function reativarLancamento(db: Db, ctx: Contexto, id: string): Pro
         "A categoria deste lançamento está inativa. Reative a categoria primeiro",
       );
     }
+    if ((await contarFilhasAtivas(tx, ctx.titularId, cat.id)) > 0) {
+      throw new ErroLancamento(
+        "nao_e_folha",
+        "A categoria deste lançamento ganhou subcategorias e não aceita mais lançamentos diretos",
+      );
+    }
     const c = await travarConta(tx, ctx.titularId, l.contaId);
     if (!c?.ativo) {
       throw new ErroLancamento(
         "conta_inativa",
         "A conta deste lançamento está inativa. Reative a conta primeiro",
       );
+    }
+    if (l.contatoId) {
+      const ct = await travarContato(tx, ctx.titularId, l.contatoId);
+      if (!ct?.ativo) {
+        throw new ErroLancamento(
+          "contato_inativo",
+          "O contato deste lançamento está inativo. Reative o contato primeiro",
+        );
+      }
     }
 
     await tx.update(lancamento).set(camposReativacao()).where(eq(lancamento.id, l.id));

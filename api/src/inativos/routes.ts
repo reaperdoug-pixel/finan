@@ -5,6 +5,7 @@ import { confirmarSenha } from "../auth/reautenticacao.js";
 import { exigirAdmin, exigirLogin, type AuthConfig } from "../auth/routes.js";
 import { ErroCategoria, reativarCategoria } from "../categorias/servico.js";
 import { ErroConta, reativarConta } from "../contas/servico.js";
+import { ErroContato, reativarContato } from "../contatos/servico.js";
 import { ErroLancamento, reativarLancamento } from "../lancamentos/servico.js";
 import {
   listarInativos,
@@ -37,6 +38,7 @@ export function rotasInativos(app: FastifyInstance, cfg: AuthConfig): void {
       lancamentos: temPermissao(s, "lancamentos", "ver"),
       categorias: temPermissao(s, "categorias", "ver"),
       contas: temPermissao(s, "contas", "ver"),
+      contatos: temPermissao(s, "contatos", "ver"),
       usuarios: gestor(s.usuario.papel),
     });
   });
@@ -52,6 +54,7 @@ export function rotasInativos(app: FastifyInstance, cfg: AuthConfig): void {
       lancamentos: true,
       categorias: true,
       contas: true,
+      contatos: true,
       usuarios: true,
     });
   });
@@ -59,12 +62,13 @@ export function rotasInativos(app: FastifyInstance, cfg: AuthConfig): void {
   registrarReativarAdmin(app, cfg, "lancamentos", "lancamento", "Lançamento não encontrado");
   registrarReativarAdmin(app, cfg, "categorias", "categoria", "Categoria não encontrada");
   registrarReativarAdmin(app, cfg, "contas", "conta", "Conta não encontrada");
+  registrarReativarAdmin(app, cfg, "contatos", "contato", "Contato não encontrado");
 }
 
 function registrarReativarAdmin(
   app: FastifyInstance,
   cfg: AuthConfig,
-  caminho: "lancamentos" | "categorias" | "contas",
+  caminho: "lancamentos" | "categorias" | "contas" | "contatos",
   entidade: EntidadeAdmin,
   naoEncontrado: string,
 ): void {
@@ -90,6 +94,9 @@ function registrarReativarAdmin(
           break;
         case "conta":
           await reativarConta(db, ctx, p.data.id);
+          break;
+        case "contato":
+          await reativarContato(db, ctx, p.data.id);
           break;
         default: {
           const _exaustivo: never = entidade;
@@ -123,6 +130,14 @@ function responderErroReativacao(reply: FastifyReply, e: unknown, naoEncontrado:
     const status = e.codigo === "nao_encontrada" ? 404 : 409;
     return reply.code(status).send({
       erro: e.codigo === "nao_encontrada" ? naoEncontrado : e.message,
+      codigo: e.codigo,
+      ...e.detalhes,
+    });
+  }
+  if (e instanceof ErroContato) {
+    const status = e.codigo === "nao_encontrado" ? 404 : 409;
+    return reply.code(status).send({
+      erro: e.codigo === "nao_encontrado" ? naoEncontrado : e.message,
       codigo: e.codigo,
       ...e.detalhes,
     });
