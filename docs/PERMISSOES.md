@@ -1,6 +1,6 @@
 # Matriz de permissões
 
-Regra geral: toda checagem acontece na API. Todo acesso é limitado ao `titular_id` do usuário. "Excluir" significa inativar.
+Regra geral: toda checagem acontece na API. Todo acesso é limitado ao `titular_id` do usuário. "Excluir" significa inativar. A revisão fina desta matriz fica para uma fase futura.
 
 ## Papéis
 

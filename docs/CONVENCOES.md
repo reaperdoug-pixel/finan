@@ -4,11 +4,13 @@
 
 ```
 FINAN/
+  README.md
   CLAUDE.md
   docs/
   web/          React + Vite + TypeScript
   api/          Fastify + TypeScript + Drizzle
   shared/       tipos e esquemas de validação compartilhados
+  e2e/          Playwright (fora de web/)
 ```
 
 ## Código
@@ -24,7 +26,7 @@ FINAN/
 
 - Mudanças só por migração versionada, nunca por alteração manual.
 - Usuário de banco da API sem `UPDATE`/`DELETE` na tabela de log.
-- Dados de teste só em dev, via script de seed que se recusa a rodar em produção.
+- Testes automatizados (Vitest da API e Playwright) usam só o `finan_test`. Uso manual e seed ficam no `finan_dev`. Nenhum dos dois roda em produção.
 
 ## Git
 
@@ -46,14 +48,17 @@ Requer Node 22+ (testado com Node 26) e npm 11.
 npm install            # instala todos os pacotes (workspaces)
 npm run lint           # ESLint em todo o repositório
 npm run typecheck      # tsc em shared, api e web
-npm run test           # Vitest em todos os pacotes
-npm run test:e2e       # Playwright (sobe API+front se não estiverem no ar)
+npm run test           # Vitest em shared, web e api (api só no finan_test)
+npm run test:e2e       # Playwright só no finan_test (portas 3001 e 5174)
 npm run build          # build de produção do front
 npm run dev:api        # API em http://127.0.0.1:3000 (variável API_PORT)
 npm run dev:web        # front em http://localhost:5173 (proxy /api -> API)
+npm run admin:criar    # primeiro administrador (só uma vez; ver seção abaixo)
 ```
 
-Na primeira vez: `npx playwright install chromium`. O setup do e2e cria `e2e-titular@finan.test` no banco de desenvolvimento (fora do bundle).
+Variáveis de ambiente: copie `.env.example` para `.env` e preencha só localmente. Além de `SESSION_SECRET`, `APP_ORIGIN`, `DATABASE_URL` e `MIGRATE_DATABASE_URL`, entram `TRUST_PROXY` (vazio = loopback), `TEST_DATABASE_URL` / `TEST_MIGRATE_DATABASE_URL` (só `*_test`), `LIMPEZA_RETENCAO_DIAS` (padrão 30) e `LOG_LEVEL` (opcional).
+
+O E2E **não** reutiliza o `dev` (que aponta para `finan_dev`). Sobe a API em `127.0.0.1:3001` com `TEST_DATABASE_URL` e o front em `127.0.0.1:5174`. Recusa qualquer banco que não termine em `_test`. O setup cria (ou atualiza) os usuários de fixture no `finan_test`; as credenciais ficam só no processo Node (`e2e/credenciais.ts`), fora do bundle. Usa o Google Chrome já instalado no sistema (`channel: "chrome"`). Se o Chrome não estiver presente, instale o navegador do sistema ou rode `npx playwright install chromium` — não instale dependências de sistema com `sudo` sem o dono do repositório pedir. Casos: `e2e/auth.spec.ts` (login, senha errada, logout, rota protegida, sessão revogada, bloqueio 429) e `e2e/fluxos.spec.ts`.
 
 ### Front (web/)
 
@@ -76,9 +81,12 @@ Na primeira vez: `npx playwright install chromium`. O setup do e2e cria `e2e-tit
 
 - Login em `POST /auth/login`; `GET /auth/me`; `POST /auth/logout`. Respostas de `/auth/*` saem com `Cache-Control: no-store`.
 - Sessão em cookie `httpOnly`, `SameSite=Strict` (`Secure` e prefixo `__Host-` em produção). O banco guarda só o HMAC do token (usa `SESSION_SECRET`).
-- Expira em 30 min de inatividade ou 12 h no total; inativar usuário ou titular derruba a sessão.
-- Limite: 5 falhas por e-mail e 20 por IP em 15 min (bloqueio devolve 429). Login certo zera a contagem do e-mail.
+- Expira em 30 min de inatividade ou 12 h no total; logout, troca de senha e inativar usuário ou titular derrubam a sessão na hora.
+- Limite: 5 falhas por e-mail e 20 por IP em 15 min (bloqueio devolve 429). A conferência é atômica (`pg_advisory_xact_lock` no e-mail e depois no IP), para uma rajada concorrente não passar do teto. Login certo zera a contagem do e-mail.
+- `TRUST_PROXY` lista os proxies cujo `X-Forwarded-For` é aceito. Vazio = só loopback (`127.0.0.1` e `::1`). Recusa `true`, `*` e equivalentes.
 - CSRF: requisição que altera dados com sessão precisa do cabeçalho `X-CSRF-Token` (valor devolvido no login e em `/auth/me`, guardado só em memória no front). Se vier `Origin`, precisa ser `APP_ORIGIN`.
+- No front, um 401 em chamada protegida (`web/src/api.ts`) limpa o CSRF e a sessão e leva a `/login`, com a rota de origem e o aviso “Sua sessão expirou. Entre de novo para continuar.” O 401 de `POST /auth/login` (senha errada), de `/auth/me`, de `/auth/logout` e das telas públicas de convite e redefinição não disparam esse fluxo.
+- Faxina de sessões e tentativas antigas: ver `docs/BACKUP.md` (`LIMPEZA_RETENCAO_DIAS`, padrão 30 dias). O log de auditoria não é limpo.
 - Rotas protegidas usam `exigirLogin(req, reply)` de `auth/routes.ts`. Todo login, falha, bloqueio e logout vai para o log.
 
 ### Convites (api/src/convites)
@@ -172,7 +180,7 @@ A bateria `isolamento.test.ts` compara as rotas vivas da API com um catálogo fe
 - `GET /usuarios`: vinculados do titular (com permissões) e convites pendentes. `PUT /usuarios/:id/permissoes` `{ permissoes, senha }`: troca as permissões.
 - Quem opera confirma com a **própria senha** (`reautenticar`, mesmo limite de tentativas do login). Falha vai para o log (`reautenticacao.falha`); o log das operações guarda `confirmado_por`.
 - `/auth/me` devolve `permissoes` para o front esconder o que não cabe. **O servidor é quem decide**: toda rota de módulo deve começar com `exigirPermissao(req, reply, modulo, acao)`.
-- Detalhes e a matriz completa em `docs/PERMISSOES.md`.
+- Detalhes e a matriz completa em `docs/PERMISSOES.md`. A revisão fina dessa matriz fica para uma fase futura.
 
 ### Primeiro administrador
 

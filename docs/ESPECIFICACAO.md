@@ -1,7 +1,7 @@
 # FINAN — Especificação v1
 
 Sistema web de finanças pessoais, multiusuário, em pt-BR e BRL.
-Status: **rascunho para revisão**. Nenhum código foi escrito.
+Status: em desenvolvimento (Fase 1). Esta especificação descreve o produto; o que o código faz de fato também está em `docs/CONVENCOES.md` e no `README.md`.
 
 ## 1. Visão
 
@@ -20,13 +20,15 @@ Status: **rascunho para revisão**. Nenhum código foi escrito.
 ## 3. Segurança (regras inegociáveis)
 
 1. **O front-end não guarda nada sensível.** Nenhum usuário, senha, token, seed ou dado de teste no bundle. Nenhum segredo em variáveis `VITE_*`. Nada em `localStorage`/`sessionStorage`.
-2. Sessão apenas em cookie `httpOnly`, `Secure`, `SameSite`. Proteção CSRF.
+2. Sessão apenas em cookie opaco `httpOnly`, `SameSite=Strict` (`Secure` e prefixo `__Host-` em produção). O banco guarda só o HMAC do token (`SESSION_SECRET`). Proteção CSRF: se vier `Origin`, precisa ser `APP_ORIGIN`; pedidos que alteram dados com sessão ativa levam o `X-CSRF-Token`, só em memória no front.
 3. Toda validação e autorização acontece na API. O front só exibe.
 4. Isolamento total entre titulares: toda consulta filtra por `titular_id` no servidor.
-5. Senha: mínimo 10 caracteres, hash argon2, limite de tentativas por IP e por usuário. Sessão expira em 30 min de inatividade e 12 h no máximo.
-6. Primeiro admin criado por CLI/variável de ambiente na VPS, nunca em código.
-7. Dados de teste só no banco de desenvolvimento, nunca em produção.
+5. Senha: mínimo 10 caracteres, hash argon2id. Limite atômico de 5 falhas por e-mail e 20 por IP em 15 min (HTTP 429). Sessão expira em 30 min de inatividade e 12 h no máximo.
+6. Primeiro admin criado por CLI (`npm run admin:criar`) na VPS, nunca em código ou seed de produção.
+7. Testes automatizados usam o banco `*_test` (nunca `finan_dev` nem produção). Uso manual em desenvolvimento fica no `finan_dev`.
 8. Anexos fora da pasta pública, servidos só pela API após checar permissão.
+9. `TRUST_PROXY` lista os proxies cujo `X-Forwarded-For` é aceito. Vazio = só loopback (Caddy na mesma máquina). Nunca `true` nem `*`.
+10. Se a sessão expira ou é revogada no meio do uso, o próximo 401 no front limpa a sessão e o CSRF, leva a `/login` guardando a rota de destino e avisa que a sessão expirou. O 401 do próprio `POST /auth/login` (senha errada) e das telas públicas não disparam esse fluxo.
 
 ## 4. Papéis e permissões
 
@@ -36,6 +38,7 @@ Status: **rascunho para revisão**. Nenhum código foi escrito.
 - Permissões por módulo (**lançamentos, categorias, contas, contatos, orçamentos, anexos**): `ver`, `cadastrar`, `alterar`, `excluir` (= inativar).
 - Log: titular vê o log do próprio espaço; vinculado só com permissão específica; admin vê tudo.
 - Nomenclatura: **Titular** = espaço de dados; **Conta** = conta financeira (carteira, banco, cartão). Vários espaços por pessoa ficam para depois.
+- A matriz atual está em `docs/PERMISSOES.md`. A revisão fina das permissões por papel e módulo fica para uma fase futura.
 
 ## 5. Regra de "nada se apaga"
 
@@ -97,11 +100,11 @@ Login, painel (resumo + gráfico), lançamentos, categorias (árvore), contas, o
 
 ## 11. Backup
 
-`pg_dump` diário, retenção de 14 dias na VPS e cópia criptografada fora dela. Teste de restauração antes de abrir para os amigos. Anexos entram no backup.
+`pg_dump` diário, retenção de 14 dias na VPS e cópia criptografada fora dela. Teste de restauração antes de abrir para os amigos. Anexos entram no backup. A faxina de sessões e tentativas de login (retenção `LIMPEZA_RETENCAO_DIAS`, padrão 30 dias) e a recuperação da senha do admin estão em `docs/BACKUP.md`.
 
 ## 12. Testes obrigatórios
 
-Isolamento entre titulares, permissões por módulo, regra de inativação, reautenticação, escrita imutável do log, cálculo de média e de parcelas.
+Isolamento entre titulares, permissões por módulo, regra de inativação, reautenticação, escrita imutável do log, cálculo de média e de parcelas. Vitest da API roda só no `finan_test` (recriado do zero). O Playwright (`npm run test:e2e`) também usa o `finan_test`, sobe API e front nas portas 3001 e 5174 (sem reutilizar o servidor de desenvolvimento) e usa o Chrome do sistema. Ver `docs/CONVENCOES.md`.
 
 ## 13. Premissas assumidas (corrija se discordar)
 

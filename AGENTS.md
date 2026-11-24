@@ -14,7 +14,7 @@ Se algo pedido contradiz a especificação, pare e pergunte. Não reabra decisõ
 6. **Ordem de inativação:** lançamentos → subcategorias → categoria. A API recusa e explica o motivo.
 7. **Log de auditoria só de inclusão.** O usuário de banco da API só tem `INSERT`/`SELECT` na tabela de log. Toda escrita relevante gera log (quem, quando, IP, antes/depois, titular). A ação precisa estar no catálogo `api/src/log-acoes.ts` (escrita nova = ação nova, com teste que a exercita). Nunca grave senha, hash ou token no log.
 8. **Dinheiro em centavos (inteiro).** Nunca `float`. Moeda BRL, interface pt-BR, fuso `America/Sao_Paulo`.
-9. **Segredos só em variáveis de ambiente no servidor**, nunca no repositório. Dados de teste só no banco de desenvolvimento.
+9. **Segredos só em variáveis de ambiente no servidor**, nunca no repositório. Testes automatizados usam só o banco `*_test`; uso manual fica no `finan_dev`. Nunca produção.
 10. **Primeiro admin criado por CLI**, nunca em código ou seed de produção.
 
 ## Como trabalhar

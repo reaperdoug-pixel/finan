@@ -116,7 +116,7 @@ Não use usuário real nem coloque dado de teste no bundle. A técnica usada na 
 
 Para testar o layout em tamanho de celular, use o viewport de 375px; em desktop, 1280px. Teste também `prefers-color-scheme: light` e `dark`.
 
-Para o e2e: `npx playwright install chromium` (uma vez) e depois `npm run test:e2e`. O setup cria `e2e-titular@finan.test` no banco de **desenvolvimento** (documentado em `CONVENCOES.md`).
+O e2e atual está em `docs/CONVENCOES.md` e no `README.md`: roda só no `finan_test`, portas 3001/5174, Chrome do sistema. Esta nota histórica sobre o banco de desenvolvimento não vale mais.
 
 ## 7. Armadilhas aprendidas
 
