@@ -10,8 +10,10 @@ finan.exemplo.com.br {
 	header {
 		# HSTS: só depois de confirmar que o HTTPS está firme em todo o domínio.
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		# Tudo vem do próprio domínio: sem scripts, estilos, fontes ou imagens de terceiros.
-		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		# Tudo vem do próprio domínio: sem scripts, fontes ou imagens de terceiros.
+		# style-src-attr 'unsafe-inline' libera apenas atributos style="..." usados nos gráficos
+		# e recuos dinâmicos do React, mantendo <style> inline bloqueado por style-src 'self'.
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
