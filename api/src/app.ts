@@ -14,13 +14,24 @@ import { rotasPainel } from "./painel/routes.js";
 import { rotasRedefinicao } from "./redefinicao/routes.js";
 import { rotasCicloDeUsuarios } from "./usuarios/ciclo-routes.js";
 import { rotasUsuarios } from "./usuarios/routes.js";
+import { tratarErro } from "./erros.js";
+import { opcoesLogger } from "./logger.js";
 
-export type AppConfig = AuthConfig;
+export interface AppConfig extends AuthConfig {
+  /** Só para testes: destino do log (padrão: stdout) e nível. */
+  log?: { stream?: NodeJS.WritableStream; nivel?: string };
+}
 
 export function buildApp(cfg: AppConfig): FastifyInstance {
   // trustProxy: a API só escuta em 127.0.0.1, então o único cliente direto é o
   // proxy (Caddy), que informa o IP real. Necessário para o limite de tentativas por IP.
-  const app = Fastify({ logger: false, trustProxy: true });
+  const app = Fastify({
+    logger: opcoesLogger(cfg.log?.stream, cfg.log?.nivel),
+    disableRequestLogging: true,
+    trustProxy: true,
+  });
+
+  app.setErrorHandler(tratarErro);
 
   // Toda resposta da API leva cabeçalhos de segurança. Dado financeiro nunca vai para cache.
   // CSP e HSTS da página ficam no Caddy (ver deploy/Caddyfile.exemplo).
