@@ -506,6 +506,18 @@ describe("reativar", () => {
     expect((await reativar(t, f.id)).statusCode).toBe(200);
   });
 
+  it("filha de mãe que ganhou lançamentos ativos: 409 até inativar os lançamentos", async () => {
+    const t = await entrar(env, { papel: "titular" });
+    const mae = await raiz(t);
+    const f = await filha(t, mae);
+    await inativar(t, f.id);
+    await lancamento(mae, t.titularId);
+    const res = await reativar(t, f.id);
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toMatchObject({ codigo: "pai_com_lancamentos", lancamentosAtivos: 1 });
+    expect((await estado(f.id)).ativo).toBe(false);
+  });
+
   it("nome já ocupado por outra categoria ativa: 409 e a inativa continua inativa", async () => {
     const t = await entrar(env, { papel: "titular" });
     const antiga = await criar(t, { nome: "Disputada", tipo: "despesa" });

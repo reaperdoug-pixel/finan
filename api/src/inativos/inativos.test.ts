@@ -248,6 +248,50 @@ describe("POST /admin/:recurso/:id/reativar", () => {
     expect(b.json().codigo).toBe("conta_inativa");
   });
 
+  it("reporta impedimento e bloqueia reativação quando categoria deixou de ser folha ou mãe tem lançamentos", async () => {
+    const alvo = await entrar(env, { papel: "titular" });
+    const admin = await entrar(env, { papel: "admin" });
+    const maeComFilha = await categoria(alvo.titularId, true);
+    const cta = await conta(alvo.titularId, true);
+    const lanc = await lancamento(alvo.titularId, {
+      categoriaId: maeComFilha,
+      contaId: cta,
+      ativo: false,
+    });
+    await env.owner.query(
+      `INSERT INTO categoria (titular_id, pai_id, nome, tipo, natureza, nivel)
+       VALUES ($1, $2, 'Sub ativa', 'despesa', 'variavel', 2)`,
+      [alvo.titularId, maeComFilha],
+    );
+
+    const maeComLanc = await categoria(alvo.titularId, true);
+    const subInativaRes = await env.owner.query(
+      `INSERT INTO categoria (titular_id, pai_id, nome, tipo, natureza, nivel, ativo, inativado_em)
+       VALUES ($1, $2, 'Sub inativa', 'despesa', 'variavel', 2, false, now()) RETURNING id`,
+      [alvo.titularId, maeComLanc],
+    );
+    const subInativa = subInativaRes.rows[0].id as string;
+    await lancamento(alvo.titularId, { categoriaId: maeComLanc, contaId: cta, ativo: true });
+
+    const lista = (await chamar(env, admin, "GET", `/admin/inativos?titularId=${alvo.titularId}`)).json() as {
+      lancamentos: { id: string; impedimento: { codigo: string } | null }[];
+      categorias: { id: string; impedimento: { codigo: string } | null }[];
+    };
+    expect(lista.lancamentos.find((x) => x.id === lanc)?.impedimento?.codigo).toBe("nao_e_folha");
+    expect(lista.categorias.find((x) => x.id === subInativa)?.impedimento?.codigo).toBe(
+      "pai_com_lancamentos",
+    );
+
+    expect(
+      (await chamar(env, admin, "POST", `/admin/lancamentos/${lanc}/reativar`, { senha: SENHA })).json()
+        .codigo,
+    ).toBe("nao_e_folha");
+    expect(
+      (await chamar(env, admin, "POST", `/admin/categorias/${subInativa}/reativar`, { senha: SENHA })).json()
+        .codigo,
+    ).toBe("pai_com_lancamentos");
+  });
+
   it("titular dono do registro, outro titular e vinculado: 403. Inexistente: 404", async () => {
     const dono = await entrar(env, { papel: "titular" });
     const outro = await entrar(env, { papel: "titular" });

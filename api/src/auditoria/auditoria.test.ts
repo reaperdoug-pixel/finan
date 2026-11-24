@@ -219,6 +219,19 @@ async function percorrerOSistema(): Promise<void> {
   expect((await chamar(admin, "POST", `/contas/${idConta}/inativar`, confirma)).statusCode).toBe(200);
   expect((await chamar(admin, "POST", `/contas/${idConta}/reativar`, confirma)).statusCode).toBe(200);
 
+  const novoContato = await chamar(admin, "POST", "/contatos", {
+    nome: "Energia SA",
+    tipo: "pj",
+    papel: "fornecedor",
+  });
+  expect(novoContato.statusCode).toBe(201);
+  const idContato = novoContato.json().id as string;
+  expect((await chamar(admin, "PATCH", `/contatos/${idContato}`, { nome: "CPFL Energia" })).statusCode).toBe(
+    200,
+  );
+  expect((await chamar(admin, "POST", `/contatos/${idContato}/inativar`, confirma)).statusCode).toBe(200);
+  expect((await chamar(admin, "POST", `/contatos/${idContato}/reativar`, confirma)).statusCode).toBe(200);
+
   const lanc = await chamar(admin, "POST", "/lancamentos", {
     categoriaId: idCategoria,
     contaId: idConta,

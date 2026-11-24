@@ -133,13 +133,19 @@ describe("criar conta", () => {
     expect(negativa).toMatchObject({ saldoInicial: -2000, saldo: -2000 });
   });
 
-  it("sem nome, tipo inválido ou saldo não inteiro: 400 e nada é criado", async () => {
+  it("sem nome, tipo inválido, saldo não inteiro ou fora do limite: 400 e nada é criado", async () => {
     const t = await entrar(env, { papel: "titular" });
     expect((await post(t, { tipo: "carteira" })).statusCode).toBe(400);
     expect((await post(t, { nome: nomeUnico(), tipo: "poupanca" })).statusCode).toBe(400);
     expect((await post(t, { nome: nomeUnico(), tipo: "carteira", saldoInicial: 10.5 })).statusCode).toBe(
       400,
     );
+    expect(
+      (await post(t, { nome: nomeUnico(), tipo: "carteira", saldoInicial: 2_147_483_648 })).statusCode,
+    ).toBe(400);
+    expect(
+      (await post(t, { nome: nomeUnico(), tipo: "carteira", saldoInicial: -2_147_483_649 })).statusCode,
+    ).toBe(400);
     expect((await un(`SELECT 1 FROM conta WHERE titular_id = $1`, [t.titularId])).length).toBe(0);
   });
 

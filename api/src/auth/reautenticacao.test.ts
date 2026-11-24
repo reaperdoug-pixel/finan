@@ -79,6 +79,16 @@ async function novaConta(titularId: string, ativa: boolean): Promise<string> {
   return r.rows[0].id as string;
 }
 
+/** Cria um contato direto no banco, ativo ou inativo, e devolve o id. */
+async function novoContato(titularId: string, ativo: boolean): Promise<string> {
+  const r = await env.owner.query(
+    `INSERT INTO contato (titular_id, nome, tipo, papel, ativo, inativado_em)
+     VALUES ($1, $2, 'pj', 'fornecedor', $3, CASE WHEN $3 THEN NULL ELSE now() END) RETURNING id`,
+    [titularId, `Contato ${Math.random().toString(36).slice(2)}`, ativo],
+  );
+  return r.rows[0].id as string;
+}
+
 /** Cria uma categoria direto no banco, ativa ou inativa, e devolve o id. */
 async function novaCategoria(titularId: string, ativa: boolean): Promise<string> {
   const r = await env.owner.query(
@@ -443,6 +453,63 @@ const casos: [string, () => Promise<Preparado>][] = [
         intacto: async () =>
           (await contar(env, `SELECT 1 FROM conta WHERE id = $1 AND NOT ativo`, [id])) === 1,
         acao: "conta.reativada",
+        statusOk: 200,
+      };
+    },
+  ],
+  [
+    "inativar contato",
+    async () => {
+      const operador = await entrar(env, { papel: "titular" });
+      const id = await novoContato(operador.titularId, true);
+      return {
+        operador,
+        papelDoOperador: "titular",
+        metodo: "POST",
+        url: `/contatos/${id}/inativar`,
+        corpo: (s) => comSenha(s),
+        intacto: async () =>
+          (await contar(env, `SELECT 1 FROM contato WHERE id = $1 AND ativo`, [id])) === 1,
+        acao: "contato.inativado",
+        statusOk: 200,
+        intrusoSemPermissao: true,
+      };
+    },
+  ],
+  [
+    "reativar contato",
+    async () => {
+      const operador = await entrar(env, { papel: "titular" });
+      const id = await novoContato(operador.titularId, false);
+      return {
+        operador,
+        papelDoOperador: "titular",
+        metodo: "POST",
+        url: `/contatos/${id}/reativar`,
+        corpo: (s) => comSenha(s),
+        intacto: async () =>
+          (await contar(env, `SELECT 1 FROM contato WHERE id = $1 AND NOT ativo`, [id])) === 1,
+        acao: "contato.reativado",
+        statusOk: 200,
+        intrusoSemPermissao: true,
+      };
+    },
+  ],
+  [
+    "admin reativar contato de outro titular",
+    async () => {
+      const alvo = await entrar(env, { papel: "titular" });
+      const id = await novoContato(alvo.titularId, false);
+      const operador = await entrar(env, { papel: "admin" });
+      return {
+        operador,
+        papelDoOperador: "admin",
+        metodo: "POST",
+        url: `/admin/contatos/${id}/reativar`,
+        corpo: (s) => comSenha(s),
+        intacto: async () =>
+          (await contar(env, `SELECT 1 FROM contato WHERE id = $1 AND NOT ativo`, [id])) === 1,
+        acao: "contato.reativado",
         statusOk: 200,
       };
     },

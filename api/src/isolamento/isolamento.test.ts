@@ -62,6 +62,11 @@ const CATALOGO = [
   "PATCH /contas/:id",
   "POST /contas/:id/inativar",
   "POST /contas/:id/reativar",
+  "GET /contatos",
+  "POST /contatos",
+  "PATCH /contatos/:id",
+  "POST /contatos/:id/inativar",
+  "POST /contatos/:id/reativar",
   "GET /lancamentos",
   "POST /lancamentos",
   "PATCH /lancamentos/:id",
@@ -73,6 +78,7 @@ const CATALOGO = [
   "POST /admin/lancamentos/:id/reativar",
   "POST /admin/categorias/:id/reativar",
   "POST /admin/contas/:id/reativar",
+  "POST /admin/contatos/:id/reativar",
 ] as const;
 
 const PUBLICAS = new Set<string>([
@@ -116,6 +122,8 @@ interface Casa {
   categoriaInativaId: string;
   contaId: string;
   contaInativaId: string;
+  contatoId: string;
+  contatoInativoId: string;
   lancamentoId: string;
   lancamentoInativoId: string;
 }
@@ -124,6 +132,7 @@ const TUDO = {
   lancamentos: { ver: true, cadastrar: true, alterar: true, excluir: true },
   categorias: { ver: true, cadastrar: true, alterar: true, excluir: true },
   contas: { ver: true, cadastrar: true, alterar: true, excluir: true },
+  contatos: { ver: true, cadastrar: true, alterar: true, excluir: true },
   log: { ver: true },
 };
 
@@ -141,6 +150,15 @@ async function novaConta(titularId: string, ativa: boolean): Promise<string> {
     `INSERT INTO conta (titular_id, nome, tipo, ativo, inativado_em)
      VALUES ($1, $2, 'carteira', $3, CASE WHEN $3 THEN NULL ELSE now() END) RETURNING id`,
     [titularId, `Conta ${randomUUID()}`, ativa],
+  );
+  return r.rows[0].id as string;
+}
+
+async function novoContato(titularId: string, ativo: boolean): Promise<string> {
+  const r = await env.owner.query(
+    `INSERT INTO contato (titular_id, nome, tipo, papel, ativo, inativado_em)
+     VALUES ($1, $2, 'pj', 'fornecedor', $3, CASE WHEN $3 THEN NULL ELSE now() END) RETURNING id`,
+    [titularId, `Contato ${randomUUID()}`, ativo],
   );
   return r.rows[0].id as string;
 }
@@ -180,6 +198,8 @@ async function montarCasa(): Promise<Casa> {
   const categoriaInativaId = await novaCategoria(titular.titularId, false);
   const contaId = await novaConta(titular.titularId, true);
   const contaInativaId = await novaConta(titular.titularId, false);
+  const contatoId = await novoContato(titular.titularId, true);
+  const contatoInativoId = await novoContato(titular.titularId, false);
   const lancamentoId = await novoLancamento(titular.titularId, categoriaId, contaId, true);
   const lancamentoInativoId = await novoLancamento(titular.titularId, categoriaId, contaId, false);
   return {
@@ -190,6 +210,8 @@ async function montarCasa(): Promise<Casa> {
     categoriaInativaId,
     contaId,
     contaInativaId,
+    contatoId,
+    contatoInativoId,
     lancamentoId,
     lancamentoInativoId,
   };
@@ -205,6 +227,8 @@ function idsDaCasa(c: Casa): string[] {
     c.categoriaInativaId,
     c.contaId,
     c.contaInativaId,
+    c.contatoId,
+    c.contatoInativoId,
     c.lancamentoId,
     c.lancamentoInativoId,
   ];
@@ -427,6 +451,33 @@ const casos: Caso[] = [
     intacto: async (a) => expect(await ativo("conta", a.contaInativaId)).toBe(false),
   },
   {
+    nome: "PATCH contato de A",
+    metodo: "PATCH",
+    url: (a) => `/contatos/${a.contatoId}`,
+    corpo: () => ({ nome: "Invadido" }),
+    espera: 404,
+    intacto: async (a) => {
+      const r = await env.owner.query(`SELECT nome FROM contato WHERE id = $1`, [a.contatoId]);
+      expect(r.rows[0]?.nome).not.toBe("Invadido");
+    },
+  },
+  {
+    nome: "POST inativar contato de A",
+    metodo: "POST",
+    url: (a) => `/contatos/${a.contatoId}/inativar`,
+    corpo: () => ({ senha: SENHA }),
+    espera: 404,
+    intacto: async (a) => expect(await ativo("contato", a.contatoId)).toBe(true),
+  },
+  {
+    nome: "POST reativar contato de A",
+    metodo: "POST",
+    url: (a) => `/contatos/${a.contatoInativoId}/reativar`,
+    corpo: () => ({ senha: SENHA }),
+    espera: 404,
+    intacto: async (a) => expect(await ativo("contato", a.contatoInativoId)).toBe(false),
+  },
+  {
     nome: "PATCH lançamento de A",
     metodo: "PATCH",
     url: (a) => `/lancamentos/${a.lancamentoId}`,
@@ -481,6 +532,15 @@ const casos: Caso[] = [
     espera: 403,
     adminRota: true,
     intacto: async (a) => expect(await ativo("conta", a.contaInativaId)).toBe(false),
+  },
+  {
+    nome: "POST admin reativar contato de A",
+    metodo: "POST",
+    url: (a) => `/admin/contatos/${a.contatoInativoId}/reativar`,
+    corpo: () => ({ senha: SENHA }),
+    espera: 403,
+    adminRota: true,
+    intacto: async (a) => expect(await ativo("contato", a.contatoInativoId)).toBe(false),
   },
 ];
 
@@ -545,9 +605,11 @@ describe("isolamento entre titulares", () => {
     const caminhos = [
       "/categorias?incluirInativas=true",
       "/contas?incluirInativas=true",
+      "/contatos?incluirInativos=true",
       "/lancamentos?incluirInativos=true&limite=100",
       `/lancamentos?categoriaId=${a.categoriaId}&limite=100`,
       `/lancamentos?contaId=${a.contaId}&limite=100`,
+      `/lancamentos?contatoId=${a.contatoId}&limite=100`,
       "/painel",
       `/painel?mes=${new Date().toISOString().slice(0, 7)}`,
       "/inativos",
@@ -570,11 +632,12 @@ describe("isolamento entre titulares", () => {
     }
   });
 
-  it("criar lançamento com categoria ou conta de A é 404 e nada nasce", async () => {
+  it("criar lançamento com categoria, conta ou contato de A é 404 e nada nasce", async () => {
     const misturas = [
       { categoriaId: a.categoriaId, contaId: b.contaId },
       { categoriaId: b.categoriaId, contaId: a.contaId },
       { categoriaId: a.categoriaId, contaId: a.contaId },
+      { categoriaId: b.categoriaId, contaId: b.contaId, contatoId: a.contatoId },
     ];
     const antes = (
       await env.owner.query(`SELECT count(*)::int AS n FROM lancamento WHERE titular_id = $1`, [

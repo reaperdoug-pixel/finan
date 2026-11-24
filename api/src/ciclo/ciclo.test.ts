@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { MODULOS } from "../auth/permissoes.js";
 import {
   chamar,
   criarAmbiente,
@@ -61,7 +62,9 @@ describe("inativar usuário", () => {
     expect(u!.inativado_em).not.toBeNull();
     expect(u!.inativado_por).toBe(t.id);
     // nada se apaga: a linha e as permissões continuam lá
-    expect((await un(`SELECT 1 FROM permissao WHERE usuario_id = $1`, [v.id])).length).toBe(6);
+    expect((await un(`SELECT 1 FROM permissao WHERE usuario_id = $1`, [v.id])).length).toBe(
+      MODULOS.length,
+    );
 
     // As sessões já foram encerradas pela própria operação. Olhar o banco ANTES de qualquer
     // outra chamada: uma requisição com a sessão velha também a revogaria, mascarando a falha.

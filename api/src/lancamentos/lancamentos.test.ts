@@ -199,13 +199,14 @@ describe("criar lançamento", () => {
     ).toBe(201);
   });
 
-  it("tipo diferente da categoria, valor não inteiro ou data inválida: 400", async () => {
+  it("tipo diferente da categoria, valor não inteiro, fora do limite ou data inválida: 400", async () => {
     const t = await entrar(env, { papel: "titular" });
     const { cat, conta } = await folhaEConta(t);
     const base = { categoriaId: cat.id, contaId: conta.id, valor: 100, data: "2026-11-13", descricao: "X" };
     expect((await post(t, { ...base, tipo: "receita" })).statusCode).toBe(400);
     expect((await post(t, { ...base, valor: 10.5 })).statusCode).toBe(400);
     expect((await post(t, { ...base, valor: 0 })).statusCode).toBe(400);
+    expect((await post(t, { ...base, valor: 2_147_483_648 })).statusCode).toBe(400);
     expect((await post(t, { ...base, data: "13/11/2026" })).statusCode).toBe(400);
     expect((await post(t, { ...base, data: "2026-02-30" })).statusCode).toBe(400);
   });
@@ -461,6 +462,17 @@ describe("inativar e reativar", () => {
     const contaInativa = await reativar(t, b.lanc.id);
     expect(contaInativa.statusCode).toBe(409);
     expect(contaInativa.json().codigo).toBe("conta_inativa");
+  });
+
+  it("não reativa se a categoria deixou de ser folha (ganhou subcategoria ativa)", async () => {
+    const t = await entrar(env, { papel: "titular" });
+    const { lanc, cat } = await lancar(t);
+    await inativar(t, lanc.id);
+    await chamar(env, t, "POST", "/categorias", { nome: nomeUnico("Sub"), paiId: cat.id });
+    const res = await reativar(t, lanc.id);
+    expect(res.statusCode).toBe(409);
+    expect(res.json().codigo).toBe("nao_e_folha");
+    expect((await estado(lanc.id)).ativo).toBe(false);
   });
 
   it("já inativo/já ativo: 409. Outro titular: 404", async () => {
