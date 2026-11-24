@@ -1,5 +1,5 @@
 import cookie from "@fastify/cookie";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { LogController, type FastifyInstance } from "fastify";
 import { rotasAuditoria } from "./auditoria/routes.js";
 import { rotasAuth, type AuthConfig } from "./auth/routes.js";
 import { rotasTrocarSenha } from "./auth/trocar-senha.js";
@@ -30,7 +30,8 @@ export function buildApp(cfg: AppConfig): FastifyInstance {
   // De qualquer outro endereço o cabeçalho é ignorado, e o limite por IP usa o IP da conexão.
   const app = Fastify({
     logger: opcoesLogger(cfg.log?.stream, cfg.log?.nivel),
-    disableRequestLogging: true,
+    // Sem uma linha de log por requisição (mesmo comportamento do antigo disableRequestLogging).
+    logController: new LogController({ disableRequestLogging: true }),
     trustProxy: [...(cfg.proxiesConfiaveis ?? PROXIES_PADRAO)],
   });
 
