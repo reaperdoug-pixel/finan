@@ -33,7 +33,7 @@ Status: **rascunho para revisão**. Nenhum código foi escrito.
 - **Admin do sistema**: convida titulares, ativa/inativa contas, reativa qualquer registro, vê todo o log. Também é titular dos próprios dados.
 - **Titular**: dono do espaço de dados. Tem todas as permissões. Cria **usuários vinculados**.
 - **Usuário vinculado**: pertence a um único titular, trabalha nos dados dele e só faz o que as permissões permitirem.
-- Permissões por módulo (**lançamentos, categorias, contas, orçamentos, anexos**): `ver`, `cadastrar`, `alterar`, `excluir` (= inativar).
+- Permissões por módulo (**lançamentos, categorias, contas, contatos, orçamentos, anexos**): `ver`, `cadastrar`, `alterar`, `excluir` (= inativar).
 - Log: titular vê o log do próprio espaço; vinculado só com permissão específica; admin vê tudo.
 - Nomenclatura: **Titular** = espaço de dados; **Conta** = conta financeira (carteira, banco, cartão). Vários espaços por pessoa ficam para depois.
 
@@ -63,7 +63,8 @@ Todas as tabelas: `id` UUID, `ativo`, `inativado_em`, `inativado_por`, `criado_p
 - **convite**: token com validade, papel, titular.
 - **categoria**: árvore de até 3 níveis (`pai_id`), tipo (receita/despesa), **natureza** (fixa/variável), `prever_pela_media`. Lançamento só em folhas.
 - **conta**: tipo (carteira/banco/cartão), nome, saldo inicial. Sem limite, fechamento, vencimento nem juros na v1.
-- **lancamento**: tipo (receita/despesa/transferência), status (previsto/realizado), natureza (herda da categoria, ajustável), valor, data, descrição, observação, categoria, conta, origem (manual/recorrência/média/parcela), `recorrencia_id`, `grupo_parcela_id` e número da parcela, `valor_previsto_original`.
+- **contato**: pessoa física ou jurídica (`pf`/`pj`), papel (`cliente`/`fornecedor`/`ambos`), nome, documento (CPF/CNPJ opcional), observação. Vínculo opcional no lançamento; resumo de pago, recebido, a receber e a pagar a partir dos lançamentos ativos (realizados × previstos).
+- **lancamento**: tipo (receita/despesa/transferência), status (previsto/realizado), natureza (herda da categoria, ajustável), valor, data, descrição, observação, categoria, conta, contato (opcional), origem (manual/recorrência/média/parcela), `recorrencia_id`, `grupo_parcela_id` e número da parcela, `valor_previsto_original`.
 - **transferencia**: par de movimentos (saída e entrada) ligados; não conta como receita nem despesa em resumos e orçamentos.
 - **recorrencia**: modelo (valor, categoria, conta, frequência mensal/anual, início, fim).
 - **orcamento**: limite mensal por categoria de despesa, com valor padrão repetido e ajuste por mês específico.

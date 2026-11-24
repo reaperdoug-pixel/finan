@@ -132,6 +132,15 @@ Carteira, banco ou cartão. Cartão nesta fase é só o tipo (sem limite, fecham
 - `POST /contas/:id/inativar` e `/reativar` `{ senha }`: permissão `excluir` + senha. Inativar só sem lançamentos ativos; a API recusa e diz quantos restam.
 - Permissões do módulo `contas`. Outro titular: 404.
 
+### Contatos (api/src/contatos)
+
+Pessoas físicas (`pf`) ou jurídicas (`pj`) com quem o titular movimenta dinheiro: `cliente`, `fornecedor` ou `ambos` (decisão 32). Documento (CPF/CNPJ) e observação são opcionais. Nome único entre contatos **ativos** do titular, sem diferenciar maiúsculas. Os totais **não são gravados**: calculados dos lançamentos ativos (`recebido`/`pago` = realizados; `aReceber`/`aPagar` = previstos).
+
+- `GET /contatos?incluirInativos=true|false`: lista ordenada por nome com resumo financeiro por contato.
+- `POST /contatos` `{ nome, tipo, papel, documento?, observacao? }`, `PATCH /contatos/:id` (`.strict()`).
+- `POST /contatos/:id/inativar` e `/reativar` `{ senha }`: permissão `excluir` + senha. Inativar só sem lançamentos ativos; reativar lançamento com contato inativo é recusado (409).
+- Permissões do módulo `contatos`. Outro titular: 404. Admin reativa de qualquer titular em `POST /admin/contatos/:id/reativar`.
+
 ### Lançamentos (api/src/lancamentos)
 
 Receita ou despesa, só em categoria folha (sem subcategorias ativas; a API recusa e o banco também, via gatilho). Dinheiro em centavos (inteiro). Data no calendário (`AAAA-MM-DD`, sem hora). Transferência, recorrência, parcelas e previsão pela média ficam para a Fase 3.

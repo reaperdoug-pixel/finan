@@ -10,7 +10,7 @@ Regra geral: toda checagem acontece na API. Todo acesso é limitado ao `titular_
 
 ## Módulos e ações
 
-Módulos: `lancamentos`, `categorias`, `contas`, `orcamentos`, `anexos`.
+Módulos: `lancamentos`, `categorias`, `contas`, `contatos`, `orcamentos`, `anexos`.
 Ações por módulo: `ver`, `cadastrar`, `alterar`, `excluir`.
 
 | Ação | Admin | Titular | Vinculado |
