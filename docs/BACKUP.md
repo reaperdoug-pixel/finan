@@ -70,3 +70,25 @@ cd /opt/finan && npm run admin:redefinir -- --email=admin@exemplo.com
 Imprime um link de uso único, válido por 24 h. Quem abre o link define a nova senha, e todas as
 sessões antigas caem. Vale só para administradores ativos. O pedido entra no log como
 `redefinicao.criada` com `via: "cli"`. Para os demais usuários, o admin gera o link pela tela.
+
+## Limpeza de sessões e tentativas de login
+
+`npm run manutencao:limpar -w api` (`api/src/cli/limpar.ts`) roda todo dia às 04:15
+(`finan-limpeza.timer`), depois do backup. Usa o papel dono (`MIGRATE_DATABASE_URL`), porque o
+papel da API não tem `DELETE`.
+
+Retenção (padrão **30 dias**, ajustável por `LIMPEZA_RETENCAO_DIAS`, de 1 a 3650):
+
+- **Sessões** revogadas há mais de 30 dias, ou criadas há mais de 30 dias + 12 h (já expiradas
+  pela duração máxima, mesmo sem revogação). Sessões válidas nunca são tocadas.
+- **Tentativas de login** com mais de 30 dias. O limite usa só os últimos 15 min.
+- O **log de auditoria não é limpo**: é imutável por gatilho.
+
+```bash
+# /etc/finan/limpeza.env (modo 600, dono root):
+#    MIGRATE_DATABASE_URL=postgres://finan_owner:...@127.0.0.1:5432/finan
+#    LIMPEZA_RETENCAO_DIAS=30
+sudo cp deploy/finan-limpeza.{service,timer} /etc/systemd/system/
+sudo systemctl enable --now finan-limpeza.timer
+sudo systemctl start finan-limpeza.service && journalctl -u finan-limpeza -n 20
+```

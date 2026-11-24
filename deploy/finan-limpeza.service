@@ -1,0 +1,16 @@
+[Unit]
+Description=Limpeza de sessões e tentativas de login antigas do FINAN
+After=postgresql.service
+
+[Service]
+Type=oneshot
+# MIGRATE_DATABASE_URL (papel dono, finan_owner) e, opcional, LIMPEZA_RETENCAO_DIAS (padrão 30). Modo 600.
+EnvironmentFile=/etc/finan/limpeza.env
+WorkingDirectory=/opt/finan/api
+ExecStart=/usr/bin/npm run --silent manutencao:limpar
+User=finan
+# Isolamento: só fala com o banco; não escreve em disco.
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
