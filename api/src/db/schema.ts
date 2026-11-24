@@ -74,6 +74,7 @@ export const MODULOS = [
   "lancamentos",
   "categorias",
   "contas",
+  "contatos",
   "orcamentos",
   "anexos",
   "log",
@@ -190,6 +191,37 @@ export const conta = pgTable(
   ],
 );
 
+export const tipoContato = pgEnum("tipo_contato", ["pf", "pj"]);
+export const papelContato = pgEnum("papel_contato", ["cliente", "fornecedor", "ambos"]);
+
+/**
+ * Contatos (pessoas físicas ou jurídicas) com quem o titular movimenta dinheiro:
+ * clientes, fornecedores ou ambos. Vínculo opcional no lançamento. Nome único entre
+ * contatos ativos do titular.
+ */
+export const contato = pgTable(
+  "contato",
+  {
+    ...comuns,
+    titularId: uuid("titular_id")
+      .notNull()
+      .references(() => titular.id),
+    nome: text("nome").notNull(),
+    tipo: tipoContato("tipo").notNull(),
+    papel: papelContato("papel").notNull(),
+    documento: text("documento"),
+    observacao: text("observacao"),
+  },
+  (t) => [
+    checkAtivo("contato"),
+    uniqueIndex("contato_titular_id_unico").on(t.titularId, t.id),
+    uniqueIndex("contato_nome_unico_no_titular")
+      .on(t.titularId, sql`lower(${t.nome})`)
+      .where(sql`${t.ativo}`),
+    index("contato_titular_idx").on(t.titularId),
+  ],
+);
+
 export const tipoLancamento = pgEnum("tipo_lancamento", ["receita", "despesa"]);
 export const statusLancamento = pgEnum("status_lancamento", ["previsto", "realizado"]);
 export const origemLancamento = pgEnum("origem_lancamento", ["manual"]);
@@ -209,6 +241,7 @@ export const lancamento = pgTable(
       .references(() => titular.id),
     categoriaId: uuid("categoria_id").notNull(),
     contaId: uuid("conta_id").notNull(),
+    contatoId: uuid("contato_id"),
     valor: integer("valor").notNull(),
     tipo: tipoLancamento("tipo").notNull(),
     status: statusLancamento("status").notNull(),
@@ -236,8 +269,14 @@ export const lancamento = pgTable(
       columns: [t.titularId, t.contaId],
       foreignColumns: [conta.titularId, conta.id],
     }),
+    foreignKey({
+      name: "lancamento_contato_mesmo_titular_fk",
+      columns: [t.titularId, t.contatoId],
+      foreignColumns: [contato.titularId, contato.id],
+    }),
     index("lancamento_categoria_idx").on(t.categoriaId, t.ativo),
     index("lancamento_conta_idx").on(t.contaId, t.ativo),
+    index("lancamento_contato_idx").on(t.contatoId, t.ativo),
     index("lancamento_titular_data_idx").on(t.titularId, t.data),
   ],
 );

@@ -71,6 +71,20 @@
       "when": 1794566926587,
       "tag": "0009_lancamento",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795047000000,
+      "tag": "0010_reativar_so_folha",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795049000000,
+      "tag": "0011_contato",
+      "breakpoints": true
     }
   ]
 }
